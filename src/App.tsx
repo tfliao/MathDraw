@@ -6,7 +6,9 @@ import { processImage } from './image/process'
 import { useImageInput } from './image/useImageInput'
 import { Worksheet } from './components/Worksheet'
 import type { ViewMode } from './components/Worksheet'
+import { usePrint } from './components/usePrint'
 import './App.css'
+import './print.css'
 
 function App() {
   const [rows, setRows] = useState('20')
@@ -22,6 +24,8 @@ function App() {
   const request = useRef(0)
   const busy = loading || generating
   const stale = snapshot !== null && snapshot.revision !== revision
+  const { mode: printMode, printing, error: printError, print } = usePrint()
+  const printReady = snapshot !== null && !stale && !busy && !generationError
 
   useEffect(() => () => { request.current++ }, [])
 
@@ -55,6 +59,7 @@ function App() {
   }
 
   return (
+    <>
     <div className="app-shell">
       <header className="site-header">
         <a className="brand" href="./"><span className="brand-icon" aria-hidden="true">+</span>MathDraw</a>
@@ -72,7 +77,7 @@ function App() {
             <label className="field-label" htmlFor="image">1. Choose a picture</label>
             <div className="upload-box">
               <span className="upload-icon" aria-hidden="true">+</span>
-              <input id="image" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="image-help image-error" aria-invalid={Boolean(imageError)} onChange={event => { changedInputs(); void selectFile(event.target.files?.[0]) }} />
+              <input id="image" type="file" accept="image/png,image/jpeg,image/webp" disabled={printing} aria-describedby="image-help image-error" aria-invalid={Boolean(imageError)} onChange={event => { changedInputs(); void selectFile(event.target.files?.[0]) }} />
               <p id="image-help">PNG, JPG, or WebP. Up to 10 MiB.<br />Simple pictures work best.</p>
               {image && <img className="source-preview" src={image.previewUrl} alt={`Original picture: ${image.name}`} />}
             </div>
@@ -81,18 +86,18 @@ function App() {
             <div className="dimension-fields">
               <div>
                 <label htmlFor="columns">Columns</label>
-                <input id="columns" type="number" min="4" max="24" step="1" value={columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
+                <input id="columns" type="number" min="4" max="24" step="1" disabled={printing} value={columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
                 <p className="field-error" id="columns-error">{columnsError}</p>
               </div>
               <span aria-hidden="true" className="dimension-cross">x</span>
               <div>
                 <label htmlFor="rows">Rows</label>
-                <input id="rows" type="number" min="4" max="24" step="1" value={rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
+                <input id="rows" type="number" min="4" max="24" step="1" disabled={printing} value={rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
                 <p className="field-error" id="rows-error">{rowsError}</p>
               </div>
             </div>
             <p className="help" id="grid-help">4-24 in each direction. One page of possibilities.</p>
-            <button className="primary-button" disabled={busy || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
+            <button className="primary-button" disabled={busy || printing || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
             <p className="help status" role="status">{loading ? 'Opening your picture...' : generating ? 'Finding colors and making your grid...' : ''}</p>
             <p className="field-error" role="alert">{generationError}</p>
             <p className="local-note">Your picture stays in this browser. No uploads, no accounts.</p>
@@ -112,6 +117,13 @@ function App() {
                   <Worksheet puzzle={snapshot.puzzle} mode={view} />
                 </div>
                 <p className="help">Colors are simplified to keep them distinct. Use the closest pencils or crayons you have.</p>
+                <div className="print-actions">
+                  <button disabled={!printReady || printing} onClick={() => void print('puzzle')}>Print puzzle</button>
+                  <button disabled={!printReady || printing} onClick={() => void print('solution')}>Print answer key</button>
+                </div>
+                <p className="help print-help">One portrait A4 or Letter page. Print in color at 100% scale, with browser headers and footers off. Printer settings may change the layout and colors.</p>
+                {printing && <p className="print-status" role="status">Print dialog open or preparing. Close it to continue editing.</p>}
+                <p className="field-error" role="alert">{printError}</p>
               </div>
             ) : <div className="empty-state">
               <div className="pixel-flower" aria-hidden="true">
@@ -132,6 +144,10 @@ function App() {
       </main>
       <footer>Less screen time. More pencil time.</footer>
     </div>
+    <div className="print-root">
+      {printReady && snapshot ? <Worksheet puzzle={snapshot.puzzle} mode={printMode} /> : <p className="print-unavailable">Create a puzzle with your current picture and grid settings before printing.</p>}
+    </div>
+    </>
   )
 }
 

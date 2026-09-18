@@ -283,7 +283,7 @@ push to a remote repository unless separately requested.
 - [x] Application foundation, reviewed and committed.
 - [x] Image-to-palette pipeline, reviewed and committed.
 - [x] Puzzle generation and preview, reviewed and committed.
-- [ ] Paper output, reviewed and committed.
+- [x] Paper output, reviewed and committed.
 - [ ] Integrated completion, reviewed and committed.
 
 ### Plan review
@@ -339,3 +339,29 @@ changes never regenerate arithmetic. Added worksheet table semantics and
 keyboard-focusable horizontal overflow rather than shrinking mobile arithmetic.
 Independent code-review sub-agent found no significant issues. Passed 21 new
 puzzle domain tests, 5 targeted image/puzzle browser tests, build, and lint.
+
+### Printing decisions and review
+
+Problem: Native browser printing can be invoked while settings are stale.
+Decision: Both explicit print actions are disabled for stale/busy/failed
+generation. Browser printing in that state prints a short instruction rather
+than silently printing an outdated worksheet. Inputs are temporarily locked
+while an explicit print is preparing/open; `afterprint` (including cancellation)
+restores editing and the safe default puzzle mode.
+
+Problem: Print fonts and DOM rendering must finish before opening the dialog.
+Decision: Commit the print mode synchronously, await local fonts and two animation
+frames, then call the browser's print function. Reuse the same worksheet
+component/snapshot for screen and print; hide the entire screen shell in print.
+
+Problem: PDF text extraction may combine a complete row into one text item.
+Decision: Assert extracted arithmetic sequences against every source cell rather
+than assuming one PDF text item per cell.
+
+Independent code-review sub-agent found no significant issues. All 23 print
+browser cases pass, including 20 A4/Letter PDFs at the planned dimension extremes,
+maximum eight-color keys, exact arithmetic, 10 pt minimum text, square-cell
+geometry, complete keys, one-page output, cancellation, stale-state blocking, and
+explicit failure recovery. Rasterized and visually inspected maximum-size Letter
+puzzle and answer-key PDFs with background printing disabled; colors, grids,
+headings, and two-row keys are visible and fit the page. Build and lint pass.
