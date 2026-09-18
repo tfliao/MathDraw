@@ -1,0 +1,21 @@
+@import url('./App.css');
+
+:root {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #233e39;
+  background: #f8f7f2;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .5; }
+a { color: inherit; }
+button, input, a { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid #c86836; outline-offset: 4px; }
+h1, h2, p { margin-top: 0; }

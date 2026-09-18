@@ -1,6 +1,6 @@
 # MathDraw implementation plan
 
-Status: Awaiting user review. Do not begin implementation until approved.
+Status: Implementation approved; work in progress.
 
 ## 1. Goal
 
@@ -279,8 +279,8 @@ push to a remote repository unless separately requested.
 - [x] Initialize the local repository.
 - [x] Draft the detailed plan.
 - [x] Independently review and commit the plan.
-- [ ] Receive user approval to implement.
-- [ ] Application foundation, reviewed and committed.
+- [x] Receive user approval to implement.
+- [x] Application foundation, reviewed and committed.
 - [ ] Image-to-palette pipeline, reviewed and committed.
 - [ ] Puzzle generation and preview, reviewed and committed.
 - [ ] Paper output, reviewed and committed.
@@ -292,4 +292,23 @@ An independent spawned sub-agent reviewed the plan before its initial commit
 and found no blockers. Both suggested clarifications were incorporated:
 sub-cell white margins cannot always survive sampling/quantization, and printed
 expressions must use compact formatting with actual-font fit verification.
-Implementation remains paused pending user review and approval.
+The user subsequently approved implementation and authorized autonomous
+decisions, with problems and decisions recorded in this repository.
+
+## 10. Implementation decision log
+
+### Development runtime
+
+Problem: Node.js and npm are not installed or available on PATH.
+Decision: Install an official, checksum-verified Node.js 24 LTS portable runtime
+under ignored `.tools/`, without changing machine-wide configuration. Document
+how to use it locally; users with a compatible Node installation can use npm
+normally.
+
+### Foundation review and validation
+
+Scaffolded the responsive, accessible setup screen with strict TypeScript,
+Vitest, Playwright, and the scaffold's Oxlint configuration. Added `pdfjs-dist`
+as development-only tooling for the planned one-page PDF assertions. Independent
+code-review sub-agent found no significant issues. Passed 15 domain tests,
+the setup browser test, production build, and lint.
