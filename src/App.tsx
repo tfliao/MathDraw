@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { dimensionError } from './domain/dimensions'
-import { toHex } from './domain/color'
-import type { ColorGrid } from './domain/palette'
+import { createPuzzle } from './domain/puzzle'
+import type { Puzzle } from './domain/puzzle'
 import { processImage } from './image/process'
 import { useImageInput } from './image/useImageInput'
-import { ColorPreview } from './components/ColorPreview'
+import { Worksheet } from './components/Worksheet'
+import type { ViewMode } from './components/Worksheet'
 import './App.css'
 
 function App() {
@@ -13,7 +14,8 @@ function App() {
   const rowsError = dimensionError(rows)
   const columnsError = dimensionError(columns)
   const { image, loading, error: imageError, selectFile } = useImageInput()
-  const [snapshot, setSnapshot] = useState<{ grid: ColorGrid; revision: number } | null>(null)
+  const [snapshot, setSnapshot] = useState<{ puzzle: Puzzle; revision: number } | null>(null)
+  const [view, setView] = useState<ViewMode>('puzzle')
   const [revision, setRevision] = useState(0)
   const [generating, setGenerating] = useState(false)
   const [generationError, setGenerationError] = useState('')
@@ -43,7 +45,8 @@ function App() {
     if (id !== request.current) return
     try {
       const grid = processImage(image, Number(rows), Number(columns))
-      setSnapshot({ grid, revision })
+      setSnapshot({ puzzle: createPuzzle(grid), revision })
+      setView('puzzle')
     } catch (cause) {
       setGenerationError(cause instanceof Error ? cause.message : 'Could not create the puzzle. Please try again.')
     } finally {
@@ -98,10 +101,16 @@ function App() {
             {snapshot ? (
               <div className="generated-preview">
                 {stale && <p className="stale-notice" role="status">Previous puzzle. Create a new puzzle to apply your changes.</p>}
-                <h2>Your pixel picture</h2>
-                <p className="help">{snapshot.grid.columns} columns x {snapshot.grid.rows} rows / {snapshot.grid.palette.length} distinct colors</p>
-                <ColorPreview grid={snapshot.grid} />
-                <div className="palette-preview">{snapshot.grid.palette.map(color => <span key={toHex(color)}><svg width="24" height="24" aria-hidden="true"><rect width="24" height="24" fill={toHex(color)} stroke="#566156" /></svg>{toHex(color)}</span>)}</div>
+                <div className="preview-toolbar">
+                  <div className="view-switch" role="group" aria-label="Preview mode">
+                    <button aria-pressed={view === 'puzzle'} onClick={() => setView('puzzle')}>Puzzle</button>
+                    <button aria-pressed={view === 'solution'} onClick={() => setView('solution')}>Solution</button>
+                  </div>
+                  <span className="preview-badge">Ready for little artists</span>
+                </div>
+                <div className="worksheet-scroll" tabIndex={0} role="region" aria-label="Scrollable worksheet preview">
+                  <Worksheet puzzle={snapshot.puzzle} mode={view} />
+                </div>
                 <p className="help">Colors are simplified to keep them distinct. Use the closest pencils or crayons you have.</p>
               </div>
             ) : <div className="empty-state">

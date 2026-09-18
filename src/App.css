@@ -52,6 +52,33 @@ footer { border-top: 1px solid #e3e7df; padding: 22px 0; font-size: 11px; color:
 .palette-preview { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
 .palette-preview span { display: flex; align-items: center; gap: 6px; font-size: 11px; }
 .stale-notice { background: #fff4df; color: #775321; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
+.preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.view-switch { display: flex; gap: 3px; padding: 4px; border-radius: 8px; background: #eef3ed; }
+.view-switch button { background: transparent; border: 0; border-radius: 5px; padding: 8px 13px; font-size: 12px; color: #587063; }
+.view-switch button[aria-pressed="true"] { background: white; color: #245f54; box-shadow: 0 1px 4px #233e3915; font-weight: 700; }
+.preview-badge { font-size: 10px; color: #63796a; }
+.worksheet-scroll { overflow-x: auto; padding: 3px 2px 10px; }
+.worksheet { width: max(420px, calc(var(--columns) * 32px)); margin: auto; color: #222; font-family: Arial, sans-serif; }
+.worksheet-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; padding-bottom: 10px; }
+.worksheet-brand { font-size: 9px; font-weight: 750; letter-spacing: 2px; margin-bottom: 7px; color: #496354; }
+.worksheet-heading h2 { font-size: 21px; margin: 0; letter-spacing: -.5px; }
+.name-line { white-space: nowrap; font-size: 11px; padding-bottom: 3px; }
+.worksheet-instructions { font-size: 11px; line-height: 1.5; margin-bottom: 16px; }
+.worksheet-grid { width: calc(var(--columns) * 32px); margin: 0 auto; }
+.math-grid { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #555; background: white; }
+.math-grid td { padding: 0; height: 32px; border: 1px solid #777; text-align: center; font-size: 13px; font-weight: 400; white-space: nowrap; line-height: 1; }
+.math-grid td span { display: inline-block; }
+.worksheet .color-preview { max-height: none; border: 1px solid #555; }
+.color-key { width: 100%; table-layout: fixed; border-collapse: collapse; margin-top: 18px; }
+.color-key caption { text-align: left; font-size: 12px; font-weight: 700; padding-bottom: 6px; }
+.color-key caption span { font-size: 9px; font-weight: 400; color: #555; margin-left: 10px; }
+.color-key td { padding: 5px 2px; vertical-align: top; }
+.key-entry { display: flex; align-items: center; gap: 6px; }
+.key-entry > strong { font-size: 15px; width: 19px; text-align: center; flex-shrink: 0; }
+.key-swatch { width: 24px; height: 24px; flex-shrink: 0; }
+.key-entry > span { font-size: 10px; white-space: nowrap; }
+.key-entry small { display: block; font-size: 8px; color: #555; margin-top: 2px; }
+.worksheet-footer { display: flex; justify-content: space-between; margin: 14px 0 0; border-top: 1px solid #ddd; padding-top: 8px; font-size: 8px; color: #555; }
 @media (max-width: 760px) {
   .app-shell { padding: 0 20px; }
   .site-header { padding: 20px 0; }

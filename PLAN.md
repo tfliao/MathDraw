@@ -282,7 +282,7 @@ push to a remote repository unless separately requested.
 - [x] Receive user approval to implement.
 - [x] Application foundation, reviewed and committed.
 - [x] Image-to-palette pipeline, reviewed and committed.
-- [ ] Puzzle generation and preview, reviewed and committed.
+- [x] Puzzle generation and preview, reviewed and committed.
 - [ ] Paper output, reviewed and committed.
 - [ ] Integrated completion, reviewed and committed.
 
@@ -330,3 +330,12 @@ matching Playwright's transformation of TypeScript imports.
 Independent code-review sub-agent found no significant issues in the image and
 palette iteration. Passed 38 domain tests, 4 browser tests (including exact white
 margins and transparency), production build, and lint.
+
+### Puzzle review and validation
+
+Added deep-frozen, caller-independent puzzle snapshots; all 17 sums have complete
+operand-pair coverage. The single shared key is sorted by sum, and screen view
+changes never regenerate arithmetic. Added worksheet table semantics and
+keyboard-focusable horizontal overflow rather than shrinking mobile arithmetic.
+Independent code-review sub-agent found no significant issues. Passed 21 new
+puzzle domain tests, 5 targeted image/puzzle browser tests, build, and lint.
