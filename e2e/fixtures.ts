@@ -23,3 +23,8 @@ export async function imageFile(page: Page, options: { width?: number; height?: 
   }, options)
   return { name: type === 'image/jpeg' ? 'picture.jpg' : type === 'image/webp' ? 'picture.webp' : 'picture.png', mimeType: type, buffer: Buffer.from(base64, 'base64') }
 }
+
+export function rotateJpegClockwise(file: Awaited<ReturnType<typeof imageFile>>) {
+  const exif = Buffer.from('ffe1002245786966000049492a0008000000010012010300010000000600000000000000', 'hex')
+  return { ...file, buffer: Buffer.concat([file.buffer.subarray(0, 2), exif, file.buffer.subarray(2)]) }
+}

@@ -113,7 +113,8 @@ function App() {
                   </div>
                   <span className="preview-badge">Ready for little artists</span>
                 </div>
-                <div className="worksheet-scroll" tabIndex={0} role="region" aria-label="Scrollable worksheet preview">
+                <p id="worksheet-scroll-help" className="scroll-hint">On a small screen? Scroll the worksheet sideways to see every square.</p>
+                <div className="worksheet-scroll" tabIndex={0} role="region" aria-label="Scrollable worksheet preview" aria-describedby="worksheet-scroll-help">
                   <Worksheet puzzle={snapshot.puzzle} mode={view} />
                 </div>
                 <p className="help">Colors are simplified to keep them distinct. Use the closest pencils or crayons you have.</p>

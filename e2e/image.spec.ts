@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { imageFile } from './fixtures'
+import { imageFile, rotateJpegClockwise } from './fixtures'
 
 test('fits the entire image, keeps white margins and limits the palette', async ({ page }) => {
   await page.goto('/')
@@ -37,4 +37,25 @@ test('reports corrupt input and recovers with a valid picture', async ({ page })
   await input.setInputFiles(await imageFile(page))
   await expect(page.getByRole('button', { name: 'Create puzzle' })).toBeEnabled()
   await expect(page.locator('#image-error')).toBeEmpty()
+})
+
+test('respects JPEG EXIF orientation before fitting and sampling', async ({ page }) => {
+  await page.goto('/')
+  const image = rotateJpegClockwise(await imageFile(page, { type: 'image/jpeg' }))
+  await page.getByLabel('1. Choose a picture').setInputFiles(image)
+  const preview = page.getByRole('img', { name: 'Original picture: picture.jpg' })
+  await expect(preview).toBeVisible()
+  expect(await preview.evaluate(element => ({ width: (element as HTMLImageElement).naturalWidth, height: (element as HTMLImageElement).naturalHeight }))).toEqual({ width: 40, height: 80 })
+  await page.getByLabel('Rows', { exact: true }).fill('8')
+  await page.getByLabel('Columns', { exact: true }).fill('8')
+  await page.getByRole('button', { name: 'Create puzzle' }).click()
+  await page.getByRole('button', { name: 'Solution', exact: true }).click()
+  const cells = page.locator('.app-shell .color-preview rect')
+  await expect(cells.first()).toHaveAttribute('fill', '#ffffff')
+  const top = (await cells.nth(3).getAttribute('fill'))!
+  const bottom = (await cells.nth(59).getAttribute('fill'))!
+  expect(Number.parseInt(top.slice(1, 3), 16)).toBeGreaterThan(180)
+  expect(Number.parseInt(top.slice(5, 7), 16)).toBeLessThan(100)
+  expect(Number.parseInt(bottom.slice(1, 3), 16)).toBeLessThan(100)
+  expect(Number.parseInt(bottom.slice(5, 7), 16)).toBeGreaterThan(150)
 })

@@ -43,4 +43,20 @@ describe('perceptually separated palette', () => {
     expect(() => reducePalette([])).toThrow()
     expect(() => reducePalette([[256, 0, 0]])).toThrow()
   })
+  it('maintains separation on seeded varied palettes and arbitrary input order', () => {
+    let seed = 123456
+    const channel = () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0
+      return seed >>> 24
+    }
+    for (let sample = 0; sample < 30; sample++) {
+      const colors: Rgb[] = Array.from({ length: 100 + sample }, () => [channel(), channel(), channel()])
+      if (sample % 2 === 0) colors.push([255, 255, 255])
+      const result = assertPalette(colors)
+      colors.forEach((color, index) => {
+        const selected = colorDistance(rgbToLab(color), rgbToLab(result.palette[result.assignments[index]]))
+        expect(result.palette.every(candidate => selected <= colorDistance(rgbToLab(color), rgbToLab(candidate)) + 1e-10)).toBe(true)
+      })
+    }
+  })
 })

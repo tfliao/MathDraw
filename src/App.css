@@ -49,8 +49,6 @@ footer { border-top: 1px solid #e3e7df; padding: 22px 0; font-size: 11px; color:
 .generated-preview { padding: 24px; }
 .generated-preview h2 { margin-bottom: 6px; }
 .color-preview { display: block; width: 100%; max-height: 480px; margin: auto; shape-rendering: crispEdges; }
-.palette-preview { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
-.palette-preview span { display: flex; align-items: center; gap: 6px; font-size: 11px; }
 .stale-notice { background: #fff4df; color: #775321; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
 .preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
 .view-switch { display: flex; gap: 3px; padding: 4px; border-radius: 8px; background: #eef3ed; }
@@ -58,6 +56,7 @@ footer { border-top: 1px solid #e3e7df; padding: 22px 0; font-size: 11px; color:
 .view-switch button[aria-pressed="true"] { background: white; color: #245f54; box-shadow: 0 1px 4px #233e3915; font-weight: 700; }
 .preview-badge { font-size: 10px; color: #63796a; }
 .worksheet-scroll { overflow-x: auto; padding: 3px 2px 10px; }
+.scroll-hint { font-size: 11px; color: #637268; line-height: 1.6; margin-bottom: 14px; }
 .worksheet { width: max(420px, calc(var(--columns) * 32px)); margin: auto; color: #222; font-family: Arial, sans-serif; }
 .worksheet-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; padding-bottom: 10px; }
 .worksheet-brand { font-size: 9px; font-weight: 750; letter-spacing: 2px; margin-bottom: 7px; color: #496354; }

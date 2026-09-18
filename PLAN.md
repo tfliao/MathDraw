@@ -1,6 +1,6 @@
 # MathDraw implementation plan
 
-Status: Implementation approved; work in progress.
+Status: Implementation complete. All iterations independently reviewed and committed.
 
 ## 1. Goal
 
@@ -284,7 +284,7 @@ push to a remote repository unless separately requested.
 - [x] Image-to-palette pipeline, reviewed and committed.
 - [x] Puzzle generation and preview, reviewed and committed.
 - [x] Paper output, reviewed and committed.
-- [ ] Integrated completion, reviewed and committed.
+- [x] Integrated completion, reviewed and committed.
 
 ### Plan review
 
@@ -365,3 +365,123 @@ geometry, complete keys, one-page output, cancellation, stale-state blocking, an
 explicit failure recovery. Rasterized and visually inspected maximum-size Letter
 puzzle and answer-key PDFs with background printing disabled; colors, grids,
 headings, and two-row keys are visible and fit the page. Build and lint pass.
+
+### Integrated completion decisions
+
+Problem: Large real images would make memory-limit tests unnecessarily costly.
+Decision: Unit-test the exact decoded-pixel boundary and use a controlled browser
+decoder stub to verify that oversized dimensions close the bitmap before any
+processing canvas allocation. Real PNG, JPEG, WebP, transparency, and JPEG EXIF
+rotation are covered separately with browser-generated image fixtures.
+
+Problem: Asynchronous races are hard to reproduce with wall-clock timing.
+Decision: Gate one decoder completion and one generation yield with explicit test
+events, replace inputs, then release the old work. Assert that the newest puzzle
+survives and stale bitmap resources are released.
+
+Problem: Horizontally scrolling mobile previews can be mistaken for clipped output.
+Decision: Keep arithmetic readable and add an explicit sideways-scroll hint,
+associated with the keyboard-focusable preview region. Desktop and mobile
+screenshots were visually inspected using a locally generated flower image.
+
+Problem: Test tooling requires a recent Node.js runtime.
+Decision: Declare Node.js >= 22.13.0 in the package manifest, with Node.js 24 LTS
+recommended. The verified portable runtime used here is Node.js 24.21.0.
+No machine-wide PATH, repository remotes, or remote deployments were configured.
+
+### Final integrated review and results
+
+The final independent code-review sub-agent found no significant issues in the
+completion increment. All implementation increments received their own spawned
+sub-agent review before commit. The final full run passed:
+
+- 60 Vitest tests across six domain/image test files.
+- 37 Playwright browser cases, including 20 single-page A4/Letter PDFs.
+- Strict TypeScript checks, Oxlint, and the production Vite build.
+
+The browser checks include actual supported image decoding, transparent and
+oriented images, shared arithmetic/color mapping, immutable view switching,
+image replacement races, failure recovery, mobile overflow, and print isolation.
+PDF assertions cover page dimensions, complete keys, square cells, minimum font
+size, exact arithmetic order, and text staying inside page bounds. Desktop/mobile
+screenshots and maximum-size printed puzzle/answer-key rasterizations were also
+visually inspected. No unperformed physical-printer or cross-browser validation
+is implied.
+
+## 11. Running and using MathDraw
+
+### Start on this machine
+
+From the repository directory in PowerShell, make the already-installed portable
+runtime available to the current terminal if Node is not otherwise on PATH:
+
+```powershell
+$nodeDirectory = (Get-ChildItem .tools -Directory -Filter 'node-*-win-x64' | Select-Object -First 1).FullName
+$env:PATH = "$nodeDirectory;$env:PATH"
+npm.cmd run dev -- --host 127.0.0.1
+```
+
+Open the local URL printed by Vite. The development server normally uses port
+5173, or another port if that one is occupied. A production preview is also
+running at `http://127.0.0.1:5173` for the implementation handoff. It is local to
+this machine and is not a remotely deployed website.
+
+### Fresh checkout
+
+Install Node.js 24 LTS (or a compatible version meeting `package.json`), then run:
+
+```powershell
+npm.cmd ci
+npm.cmd run dev -- --host 127.0.0.1
+```
+
+The portable `.tools` runtime and `node_modules` are intentionally not committed.
+Dependency downloads occur during development setup, not when users process
+images in the application.
+
+### Create a paper activity
+
+1. Choose a PNG, JPEG, or WebP picture. Simple, high-contrast pictures work best.
+2. Set columns and rows, each between 4 and 24, then select "Create puzzle."
+3. Use "Puzzle" or "Solution" to inspect the generated activity. Changing setup
+   fields does not alter the existing puzzle; generate again to apply changes.
+4. Select "Print puzzle" for the child's uncolored worksheet, or "Print answer
+   key" for the adult's colored solution. Printing never uses the screen's view
+   selection to guess which sheet you want.
+5. In the print dialog, use portrait A4 or Letter, 100% scale, color printing, and
+   disable browser headers/footers. "Save as PDF" works through the same dialog.
+
+The key is shared by every cell. A "Leave white" entry still has a sum to solve,
+but that square should not be colored. Image colors are simplified and may not
+exactly match available crayons. Neither the original image nor generated puzzles
+are saved across a page refresh; save a PDF before leaving if needed.
+
+### Development commands
+
+```powershell
+npm.cmd test
+npm.cmd run typecheck
+npm.cmd run lint
+npm.cmd run build
+npx.cmd playwright install chromium
+npm.cmd run test:e2e
+npm.cmd run preview -- --host 127.0.0.1
+```
+
+For targeted browser coverage on Windows, use test filenames rather than paths,
+for example `npm.cmd run test:e2e -- image.spec.ts puzzle.spec.ts`.
+Playwright uses its own local test server on port 4173, and saves generated PDFs
+and failure traces under ignored `test-results`. Production output goes to
+ignored `dist`; it can be served by a static web host.
+
+### Known boundaries
+
+- Chromium browser and PDF rendering are the validated v1 baseline. Current
+  Chrome or Edge is recommended; other browsers and physical printers have not
+  been independently verified.
+- CIE76 distance >= 25 is a palette-separation heuristic, not a promise of
+  printer color accuracy or distinguishability for every kind of color vision.
+- Coarse grids discard fine picture details, including margins smaller than a
+  cell. Images with transparency are composited onto white.
+- Decoded-size checks happen after the browser has decoded the source, so they
+  do not eliminate decoder memory use for malicious image files.
