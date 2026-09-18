@@ -43,6 +43,15 @@ input::file-selector-button { border: 0; border-radius: 5px; background: #e2ebe2
 .how-it-works p { font-size: 12px; line-height: 1.8; color: #6a786f; }
 .how-it-works strong { display: block; color: #45624f; font-size: 12px; margin-bottom: 3px; }
 footer { border-top: 1px solid #e3e7df; padding: 22px 0; font-size: 11px; color: #778477; }
+.source-preview { display: block; max-width: 100%; max-height: 140px; object-fit: contain; margin: 16px auto 0; border-radius: 5px; }
+.status:empty { display: none; }
+.status { margin-bottom: 0; }
+.generated-preview { padding: 24px; }
+.generated-preview h2 { margin-bottom: 6px; }
+.color-preview { display: block; width: 100%; max-height: 480px; margin: auto; shape-rendering: crispEdges; }
+.palette-preview { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.palette-preview span { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+.stale-notice { background: #fff4df; color: #775321; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5; }
 @media (max-width: 760px) {
   .app-shell { padding: 0 20px; }
   .site-header { padding: 20px 0; }

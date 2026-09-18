@@ -1,5 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { dimensionError } from './domain/dimensions'
+import { toHex } from './domain/color'
+import type { ColorGrid } from './domain/palette'
+import { processImage } from './image/process'
+import { useImageInput } from './image/useImageInput'
+import { ColorPreview } from './components/ColorPreview'
 import './App.css'
 
 function App() {
@@ -7,6 +12,44 @@ function App() {
   const [columns, setColumns] = useState('16')
   const rowsError = dimensionError(rows)
   const columnsError = dimensionError(columns)
+  const { image, loading, error: imageError, selectFile } = useImageInput()
+  const [snapshot, setSnapshot] = useState<{ grid: ColorGrid; revision: number } | null>(null)
+  const [revision, setRevision] = useState(0)
+  const [generating, setGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState('')
+  const request = useRef(0)
+  const busy = loading || generating
+  const stale = snapshot !== null && snapshot.revision !== revision
+
+  useEffect(() => () => { request.current++ }, [])
+
+  function changedInputs() {
+    request.current++
+    setRevision(value => value + 1)
+    setGenerating(false)
+    setGenerationError('')
+  }
+
+  async function generate() {
+    if (!image || rowsError || columnsError) {
+      setGenerationError('Choose a picture and valid grid dimensions first.')
+      return
+    }
+    const id = ++request.current
+    setGenerating(true)
+    setGenerationError('')
+    // Yield once so the busy state paints before bounded CPU/canvas work.
+    await new Promise<void>(resolve => setTimeout(resolve, 30))
+    if (id !== request.current) return
+    try {
+      const grid = processImage(image, Number(rows), Number(columns))
+      setSnapshot({ grid, revision })
+    } catch (cause) {
+      setGenerationError(cause instanceof Error ? cause.message : 'Could not create the puzzle. Please try again.')
+    } finally {
+      if (id === request.current) setGenerating(false)
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -26,29 +69,42 @@ function App() {
             <label className="field-label" htmlFor="image">1. Choose a picture</label>
             <div className="upload-box">
               <span className="upload-icon" aria-hidden="true">+</span>
-              <input id="image" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="image-help" />
+              <input id="image" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="image-help image-error" aria-invalid={Boolean(imageError)} onChange={event => { changedInputs(); void selectFile(event.target.files?.[0]) }} />
               <p id="image-help">PNG, JPG, or WebP. Up to 10 MiB.<br />Simple pictures work best.</p>
+              {image && <img className="source-preview" src={image.previewUrl} alt={`Original picture: ${image.name}`} />}
             </div>
+            <p className="field-error" role="alert" id="image-error">{imageError}</p>
             <p className="field-label">2. Pick your grid</p>
             <div className="dimension-fields">
               <div>
                 <label htmlFor="columns">Columns</label>
-                <input id="columns" type="number" min="4" max="24" step="1" value={columns} onChange={event => setColumns(event.target.value)} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
+                <input id="columns" type="number" min="4" max="24" step="1" value={columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
                 <p className="field-error" id="columns-error">{columnsError}</p>
               </div>
               <span aria-hidden="true" className="dimension-cross">x</span>
               <div>
                 <label htmlFor="rows">Rows</label>
-                <input id="rows" type="number" min="4" max="24" step="1" value={rows} onChange={event => setRows(event.target.value)} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
+                <input id="rows" type="number" min="4" max="24" step="1" value={rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
                 <p className="field-error" id="rows-error">{rowsError}</p>
               </div>
             </div>
             <p className="help" id="grid-help">4-24 in each direction. One page of possibilities.</p>
-            <button className="primary-button" disabled>Create puzzle</button>
+            <button className="primary-button" disabled={busy || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
+            <p className="help status" role="status">{loading ? 'Opening your picture...' : generating ? 'Finding colors and making your grid...' : ''}</p>
+            <p className="field-error" role="alert">{generationError}</p>
             <p className="local-note">Your picture stays in this browser. No uploads, no accounts.</p>
           </section>
-          <section className="preview panel" aria-label="Puzzle preview">
-            <div className="empty-state">
+          <section className="preview panel" aria-label="Puzzle preview" aria-busy={busy}>
+            {snapshot ? (
+              <div className="generated-preview">
+                {stale && <p className="stale-notice" role="status">Previous puzzle. Create a new puzzle to apply your changes.</p>}
+                <h2>Your pixel picture</h2>
+                <p className="help">{snapshot.grid.columns} columns x {snapshot.grid.rows} rows / {snapshot.grid.palette.length} distinct colors</p>
+                <ColorPreview grid={snapshot.grid} />
+                <div className="palette-preview">{snapshot.grid.palette.map(color => <span key={toHex(color)}><svg width="24" height="24" aria-hidden="true"><rect width="24" height="24" fill={toHex(color)} stroke="#566156" /></svg>{toHex(color)}</span>)}</div>
+                <p className="help">Colors are simplified to keep them distinct. Use the closest pencils or crayons you have.</p>
+              </div>
+            ) : <div className="empty-state">
               <div className="pixel-flower" aria-hidden="true">
                 {Array.from({ length: 25 }, (_, index) => <span key={index} className={[2, 6, 7, 8, 10, 11, 13, 14, 16, 17, 18, 22].includes(index) ? 'petal' : index === 12 ? 'center' : ''} />)}
               </div>
@@ -56,7 +112,7 @@ function App() {
               <h2>Your next little masterpiece</h2>
               <p>Choose a picture to get started.<br />We will turn it into simple sums and up to 8 colors.</p>
               <div className="step-pills"><span>1 + 2</span><span>Pick a color</span><span>Find the picture</span></div>
-            </div>
+            </div>}
           </section>
         </div>
         <section className="how-it-works" aria-label="How it works">

@@ -281,7 +281,7 @@ push to a remote repository unless separately requested.
 - [x] Independently review and commit the plan.
 - [x] Receive user approval to implement.
 - [x] Application foundation, reviewed and committed.
-- [ ] Image-to-palette pipeline, reviewed and committed.
+- [x] Image-to-palette pipeline, reviewed and committed.
 - [ ] Puzzle generation and preview, reviewed and committed.
 - [ ] Paper output, reviewed and committed.
 - [ ] Integrated completion, reviewed and committed.
@@ -312,3 +312,21 @@ Vitest, Playwright, and the scaffold's Oxlint configuration. Added `pdfjs-dist`
 as development-only tooling for the planned one-page PDF assertions. Independent
 code-review sub-agent found no significant issues. Passed 15 domain tests,
 the setup browser test, production build, and lint.
+
+### Image processing decisions and review
+
+Problem: Sampling quality, responsiveness, and resource use need concrete limits.
+Decision: Use 16 by 16 samples per cell (maximum canvas 384 by 384), at most eight
+clustering iterations, and at most 576 unique input samples. Yield before
+generation so busy feedback paints; keep bounded processing on the main thread
+rather than adding worker messaging for this small workload. Decode with
+`createImageBitmap` and explicitly close bitmaps/revoke preview URLs on replacement,
+stale completion, errors, and unmount.
+
+Problem: Browser tests execute DOM code but their runner is Node-based.
+Decision: Type-check browser tests with DOM types and bundler module resolution,
+matching Playwright's transformation of TypeScript imports.
+
+Independent code-review sub-agent found no significant issues in the image and
+palette iteration. Passed 38 domain tests, 4 browser tests (including exact white
+margins and transparency), production build, and lint.
