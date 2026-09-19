@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react'
 import type { Puzzle } from '../domain/puzzle'
 import { ColorPreview } from './ColorPreview'
 import { worksheetLayout } from '../domain/layout'
-import { problemText } from '../domain/settings'
+import { operatorSymbol, problemText } from '../domain/settings'
 
 export type ViewMode = 'puzzle' | 'solution'
 
@@ -26,7 +26,7 @@ export function Worksheet({ puzzle, mode }: { puzzle: Puzzle; mode: ViewMode }) 
         <div><p className="worksheet-brand">MATHDRAW</p><h2>{mode === 'puzzle' ? additionOnly ? 'Color-by-addition' : 'Color-by-math' : 'Answer key'}</h2></div>
         {mode === 'puzzle' && <span className="name-line">Name: ____________________</span>}
       </header>
-      <p className="worksheet-instructions">{mode === 'puzzle' ? `Solve each ${additionOnly ? 'sum' : 'problem'}. Match your answer to the color key. Color the square!${puzzle.settings.operators.includes('*') ? ' * means multiply.' : ''}` : 'The finished picture. Use the color key to check each answer.'}</p>
+      <p className="worksheet-instructions">{mode === 'puzzle' ? `Solve each ${additionOnly ? 'sum' : 'problem'}. Match your answer to the color key. Color the square!${puzzle.settings.operators.includes('*') ? ` ${operatorSymbol('*')} means multiply.` : ''}` : 'The finished picture. Use the color key to check each answer.'}</p>
       <div className="worksheet-grid">
         {mode === 'puzzle' ? (
           <table className="math-grid" aria-label={`${puzzle.rows} by ${puzzle.columns} ${additionOnly ? 'addition' : 'math'} puzzle`}>

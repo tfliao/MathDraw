@@ -70,9 +70,21 @@ describe('addition puzzles', () => {
       expect(cell.b).toBeGreaterThanOrEqual(1)
       expect(cell.a).toBeLessThanOrEqual(99)
       expect(cell.b).toBeLessThanOrEqual(99)
-      expect(answer(cell)).toBeGreaterThanOrEqual(0)
+      expect(answer(cell)).toBeGreaterThan(0)
+      expect(answer(cell)).toBeLessThanOrEqual(puzzle.settings.maxResult)
       expect(puzzle.key.find(entry => entry.results.includes(answer(cell)))?.colorIndex).toBe(cell.colorIndex)
     })
+  })
+  it('rejects impossible result settings before creating a puzzle', () => {
+    expect(() => createPuzzle(grid, { ...DEFAULT_SETTINGS, maxResult: 1 })).toThrow('no allowed answers')
+    expect(() => createPuzzle(grid, { ...DEFAULT_SETTINGS, maxResult: 0, allowZeroResults: true })).toThrow('no allowed answers')
+  })
+  it('supports a zero-only subtraction puzzle without zero operands', () => {
+    const puzzle = createPuzzle({ rows: 4, columns: 4, palette: [[0, 0, 0]], assignments: Array(16).fill(0) }, { ...DEFAULT_SETTINGS, operators: ['-'], maxResult: 0, allowZeroResults: true, multiMap: true })
+    expect(puzzle.key[0].results).toEqual([0])
+    expect(puzzle.cells.every(cell => cell.a === cell.b && cell.a > 0)).toBe(true)
+    expect(puzzle.settings.maxResult).toBe(0)
+    expect(puzzle.settings.allowZeroResults).toBe(true)
   })
   it('does not allocate extra results to rare colors or run out of answers', () => {
     const small: ColorGrid = { rows: 4, columns: 4, palette: colors.slice(0, 3), assignments: [0, 1, ...Array(14).fill(2)] }
@@ -111,7 +123,8 @@ describe('addition puzzles', () => {
               expect(cell.b).toBeGreaterThanOrEqual(allowZero ? 0 : 1)
               expect(cell.a).toBeLessThanOrEqual(maxOperand)
               expect(cell.b).toBeLessThanOrEqual(maxOperand)
-              expect(answer(cell)).toBeGreaterThanOrEqual(0)
+              expect(answer(cell)).toBeGreaterThan(0)
+              expect(answer(cell)).toBeLessThanOrEqual(settings.maxResult)
               expect(puzzle.key.find(entry => entry.results.includes(answer(cell)))?.colorIndex).toBe(cell.colorIndex)
             })
           }

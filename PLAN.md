@@ -690,7 +690,7 @@ own meaningful commit, following the same source-maintenance workflow as V1.
 
 - [x] Record implementation approach before coding.
 - [x] Align height and width limits, reviewed and committed.
-- [ ] Result controls and multiplication sign, reviewed and committed.
+- [x] Result controls and multiplication sign, reviewed and committed.
 - [ ] README, integrated validation, and final review committed.
 
 The existing user-owned `OIP.webp` remains untouched and untracked.
@@ -703,3 +703,19 @@ auto size within 24 by 24, and verified restoring a manual 64-row value after
 toggling auto size. Independent sub-agent review found no significant issues.
 Passed 58 targeted domain tests, 12 browser cases, build, and lint, including
 complete 64-by-64 puzzle and answer-key PDFs on larger paper.
+
+### V3 result/display iteration
+
+Result constraints are applied while enumerating expressions, so the UI's
+capacity, reduced palette, assigned results, and printed key all agree. An empty
+maximum-result input is invalid, not an implicit zero. Empty legal-result sets
+produce a specific actionable message and cannot reach palette generation.
+Zero-only subtraction can use positive operands; enabling zero operands alone
+does not enable zero answers. Existing high-result print coverage now opts
+explicitly into maximum result 9801.
+
+Multiplication keeps its internal `*` identifier; one display helper emits U+00D7
+for controls, expressions, and print instructions. Exact extracted PDF expression
+sequences verify the multiplication glyph and absence of asterisks. Independent
+sub-agent review found no significant issues. Passed 72 targeted domain tests,
+10 browser cases, production build, and lint.

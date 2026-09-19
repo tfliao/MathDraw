@@ -10,7 +10,7 @@ import type { ViewMode } from './components/Worksheet'
 import { usePrint } from './components/usePrint'
 import { AdvancedSettings } from './components/AdvancedSettings'
 import { DEFAULT_DRAFT, parseSettings } from './components/settingsDraft'
-import { buildProblemPool, settingsErrors } from './domain/settings'
+import { buildProblemPool, NO_RESULTS_MESSAGE, settingsErrors } from './domain/settings'
 import './App.css'
 import './print.css'
 
@@ -23,6 +23,7 @@ function App() {
   const invalidSettings = Object.values(settingsErrors(settings)).some(Boolean)
   const resultCapacity = useMemo(() => invalidSettings ? 0 : buildProblemPool(settings).size, [settings, invalidSettings])
   const effectiveColors = Math.min(settings.maxColors, resultCapacity)
+  const noResults = !invalidSettings && resultCapacity === 0
   const rowsError = autoSize ? null : dimensionError(rows)
   const columnsError = autoSize ? null : dimensionError(columns, 'columns')
   const { image, loading, error: imageError, selectFile } = useImageInput()
@@ -51,8 +52,8 @@ function App() {
   }
 
   async function generate() {
-    if (!image || rowsError || columnsError || invalidSettings || gridRows === undefined || gridColumns === undefined) {
-      setGenerationError('Choose a picture and valid grid and advanced settings first.')
+    if (!image || rowsError || columnsError || invalidSettings || noResults || gridRows === undefined || gridColumns === undefined) {
+      setGenerationError(noResults ? NO_RESULTS_MESSAGE : 'Choose a picture and valid grid and advanced settings first.')
       return
     }
     const id = ++request.current
@@ -117,8 +118,9 @@ function App() {
             {!rowsError && gridRows !== undefined && gridRows > 24 && <p className="stale-notice" role="status">24 rows best fits A4. Choose larger paper for this taller grid; cells will not be shrunk.</p>}
             <AdvancedSettings value={settingsDraft} disabled={printing} onChange={value => { changedInputs(); setSettingsDraft(value) }} />
             {invalidSettings && <p className="field-error" role="alert">Check the invalid options in Advanced before creating a puzzle.</p>}
-            {!invalidSettings && effectiveColors < settings.maxColors && <p className="stale-notice" role="status">These math settings provide {resultCapacity} distinct answers, so the color limit is reduced to {effectiveColors}.</p>}
-            <button className="primary-button" disabled={busy || printing || invalidSettings || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
+            {noResults && <p className="field-error" role="alert">{NO_RESULTS_MESSAGE}</p>}
+            {!invalidSettings && !noResults && effectiveColors < settings.maxColors && <p className="stale-notice" role="status">These math settings provide {resultCapacity} distinct answers, so the color limit is reduced to {effectiveColors}.</p>}
+            <button className="primary-button" disabled={busy || printing || invalidSettings || noResults || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
             <p className="help status" role="status">{loading ? 'Opening your picture...' : generating ? 'Finding colors and making your grid...' : ''}</p>
             <p className="field-error" role="alert">{generationError}</p>
             <p className="local-note">Your picture stays in this browser. No uploads, no accounts.</p>

@@ -14,9 +14,10 @@ test('large advanced worksheets retain expressions, grouped keys and readable ce
   await page.getByLabel('Rows', { exact: true }).fill('24')
   await page.getByText('Advanced', { exact: true }).click()
   await page.getByLabel('Maximum operand', { exact: true }).fill('99')
+  await page.getByLabel('Maximum result', { exact: true }).fill('9801')
   await page.getByLabel('Maximum colors', { exact: true }).fill('16')
   await page.getByLabel('Subtraction (-)', { exact: true }).check()
-  await page.getByLabel('Multiplication (*)', { exact: true }).check()
+  await page.getByLabel('Multiplication (\u00d7)', { exact: true }).check()
   await page.getByLabel('Multiple results per color').check()
   await page.getByRole('button', { name: 'Create puzzle' }).click()
   await expect(page.getByRole('table', { name: '24 by 64 math puzzle' })).toBeVisible()
@@ -61,10 +62,14 @@ test('large advanced worksheets retain expressions, grouped keys and readable ce
         expect(text).toContain(entry.color)
         for (const result of entry.results) expect(text).toMatch(new RegExp(`\\b${result}\\b`))
       }
-      if (mode === 'puzzle') expect(text.match(/\d{1,2}[+*-]\d{1,2}/g)).toEqual(problems)
+      if (mode === 'puzzle') {
+        expect(text.match(/\d{1,2}[+\u00d7-]\d{1,2}/g)).toEqual(problems)
+        expect(text).toContain('\u00d7')
+        expect(text).not.toContain('*')
+      }
       else {
         expect(text).toContain('Answer key')
-        expect(text).not.toMatch(/\d{1,2}[+*-]\d{1,2}/)
+        expect(text).not.toMatch(/\d{1,2}[+\u00d7-]\d{1,2}/)
       }
       for (const item of content.items) {
         if ('str' in item && item.str.trim()) {

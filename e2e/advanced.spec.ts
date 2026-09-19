@@ -9,9 +9,11 @@ test('advanced settings are collapsed and preserve original defaults', async ({ 
   await expect(page.getByLabel('Maximum operand', { exact: true })).toHaveValue('9')
   await expect(page.getByLabel('Addition (+)', { exact: true })).toBeChecked()
   await expect(page.getByLabel('Subtraction (-)', { exact: true })).not.toBeChecked()
-  await expect(page.getByLabel('Multiplication (*)', { exact: true })).not.toBeChecked()
+  await expect(page.getByLabel('Multiplication (\u00d7)', { exact: true })).not.toBeChecked()
   await expect(page.getByLabel('Multiple results per color')).not.toBeChecked()
   await expect(page.getByLabel('Maximum colors', { exact: true })).toHaveValue('8')
+  await expect(page.getByLabel('Maximum result', { exact: true })).toHaveValue('99')
+  await expect(page.getByLabel('Allow zero results')).not.toBeChecked()
 })
 
 test('advanced validation blocks generation, including when collapsed', async ({ page }) => {
@@ -29,6 +31,12 @@ test('advanced validation blocks generation, including when collapsed', async ({
     await expect(page.getByRole('button', { name: 'Create puzzle' })).toBeDisabled()
   }
   await page.getByLabel('Maximum colors', { exact: true }).fill('16')
+  for (const value of ['-1', '9802', '1.5', '']) {
+    await page.getByLabel('Maximum result', { exact: true }).fill(value)
+    await expect(page.locator('#result-error')).toHaveText('Enter a whole number from 0 to 9801.')
+    await expect(page.getByRole('button', { name: 'Create puzzle' })).toBeDisabled()
+  }
+  await page.getByLabel('Maximum result', { exact: true }).fill('99')
   await page.getByLabel('Addition (+)', { exact: true }).uncheck()
   await expect(page.locator('#operator-error')).toBeVisible()
   await page.getByText('Advanced', { exact: true }).click()
@@ -42,6 +50,7 @@ test('subtraction caps colors by answer capacity and allows zero results without
   await page.getByText('Advanced', { exact: true }).click()
   await page.getByLabel('Addition (+)', { exact: true }).uncheck()
   await page.getByLabel('Subtraction (-)', { exact: true }).check()
+  await page.getByLabel('Allow zero results').check()
   await page.getByLabel('Maximum operand', { exact: true }).fill('2')
   await page.getByLabel('Maximum colors', { exact: true }).fill('16')
   await expect(page.getByText('These math settings provide 2 distinct answers', { exact: false })).toBeVisible()
@@ -59,7 +68,7 @@ test('multiplication multi-map uses grouped results and survives view switching'
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
   await page.getByText('Advanced', { exact: true }).click()
   await page.getByLabel('Addition (+)', { exact: true }).uncheck()
-  await page.getByLabel('Multiplication (*)', { exact: true }).check()
+  await page.getByLabel('Multiplication (\u00d7)', { exact: true }).check()
   await page.getByLabel('Maximum operand', { exact: true }).fill('99')
   await page.getByLabel('Multiple results per color').check()
   await page.getByRole('button', { name: 'Create puzzle' }).click()
@@ -71,10 +80,11 @@ test('multiplication multi-map uses grouped results and survives view switching'
   expect(entries.every(entry => entry.results.length === 3)).toBe(true)
   expect(new Set(entries.flatMap(entry => entry.results)).size).toBe(entries.length * 3)
   const results = problems.map(text => {
-    expect(text).toMatch(/^\d{1,2}\*\d{1,2}$/)
-    const [a, b] = text.split('*').map(Number)
+    expect(text).toMatch(/^\d{1,2}\u00d7\d{1,2}$/)
+    const [a, b] = text.split('\u00d7').map(Number)
     expect(a).toBeGreaterThan(0)
     expect(b).toBeGreaterThan(0)
+    expect(a * b).toBeLessThanOrEqual(99)
     return a * b
   })
   expect(new Set(results)).toEqual(new Set(entries.flatMap(entry => entry.results)))
@@ -114,6 +124,8 @@ test('all advanced changes invalidate old printouts and the expanded panel fits 
     () => page.getByLabel('Multiple results per color').check(),
     () => page.getByLabel('Maximum colors', { exact: true }).fill('3'),
     () => page.getByLabel('Allow zero operands').check(),
+    () => page.getByLabel('Maximum result', { exact: true }).fill('5'),
+    () => page.getByLabel('Allow zero results').check(),
   ]
   for (const edit of edits) {
     await page.getByRole('button', { name: 'Create puzzle' }).click()
