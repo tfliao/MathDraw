@@ -117,6 +117,171 @@ normally serves them on port 4173; use its printed URL. It is a local inspection
 server, not a production deployment service. Deploy the contents of `dist` to a
 static web host. No server-side application or environment secrets are required.
 
+## Deploy to GitHub Pages
+
+MathDraw is already a static web app: no conversion or backend hosting is needed.
+GitHub Actions can build it and publish `dist` to GitHub Pages. Image processing
+and printing continue to work in the visitor's browser.
+
+The following is a **setup guide**, not an already-configured deployment. No
+Pages workflow is currently included in the repository.
+
+### 1. Publish the source repository
+
+Create an empty GitHub repository, for example `MathDraw`. Do not initialize a
+second README or license there when pushing this existing Git history. A public
+repository is the simplest option for GitHub Free; check your plan's Pages
+availability if you want a private repository.
+
+If this local repository does not already have an `origin`, replace
+`YOUR-USERNAME` below and run:
+
+```powershell
+git remote add origin https://github.com/YOUR-USERNAME/MathDraw.git
+git push -u origin master
+```
+
+The examples use `master`, the branch used by this project. If you use `main`
+instead, change both the push command and the workflow branch below. If an
+`origin` already exists, inspect it with `git remote -v` rather than adding it
+again. Publish only intended source commits, not personal images or secrets.
+
+### 2. Enable GitHub Actions publishing
+
+In the GitHub repository, open **Settings > Pages**. Under **Build and deployment**,
+set **Source** to **GitHub Actions**.
+
+For a repository named `MathDraw`, the project-site URL will normally be:
+
+```text
+https://YOUR-USERNAME.github.io/MathDraw/
+```
+
+### 3. Add the deployment workflow
+
+Create `.github\workflows\deploy-pages.yml` with the following content, then commit
+and push that file. The workflow runs on Ubuntu, so its commands use `npm`, not
+`npm.cmd`.
+
+```yaml
+name: Deploy MathDraw to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  BASE_PATH: /MathDraw/
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Lint
+        run: npm run lint
+      - name: Build for the repository path
+        run: npm run build -- --base="$BASE_PATH"
+      - name: Upload built site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+Set `BASE_PATH` to your actual hosting path, including both slashes:
+
+| Hosting location | `BASE_PATH` |
+| --- | --- |
+| `https://YOUR-USERNAME.github.io/MathDraw/` | `/MathDraw/` |
+| A project repository with another name | `/YOUR-REPOSITORY-NAME/` |
+| Root site in `YOUR-USERNAME.github.io`, or a custom domain served at its root | `/` |
+
+The repository name and path are case-sensitive. The build flag configures Vite's
+asset URLs for Pages without changing `vite.config.ts` or the normal local
+development path. Do not publish the source `index.html` directly: publish the
+generated `dist` artifact. No `gh-pages` branch, personal access token, or
+committed `dist` directory is required for this workflow.
+
+The build command includes type checking. This deployment example runs unit
+tests and lint but not Playwright; run the browser/PDF suite separately as
+described under Development.
+
+### 4. Open the deployed site
+
+Open the repository's **Actions** tab and wait for the deployment workflow to
+finish. The `github-pages` environment and **Settings > Pages** provide the
+published URL. Later pushes to the configured branch rebuild the site. You can
+also use **Run workflow** once the workflow is on the default branch.
+
+Check that the page loads, generate a puzzle, and open its print preview. The
+public site does not upload visitors' pictures to GitHub.
+
+### Preview the Pages path locally
+
+Before deploying, you can simulate the project-site path:
+
+```powershell
+npm.cmd run build -- --base=/MathDraw/
+npm.cmd run preview -- --host 127.0.0.1 --base=/MathDraw/
+```
+
+Open `http://127.0.0.1:4173/MathDraw/`, or the equivalent path on the port printed
+by Vite. Use your repository's actual path in both commands. Rebuild with plain
+`npm.cmd run build` to restore a root-path build for normal local preview.
+
+### Troubleshooting
+
+| Symptom | What to check |
+| --- | --- |
+| Blank page or missing JavaScript/CSS | `BASE_PATH` matches the repository name and the deployed URL; rebuild after changing it |
+| Site returns 404 | Pages source is GitHub Actions, deployment succeeded, and you are using the published project path |
+| Workflow does not start | Its `push.branches` matches the branch you pushed; Actions are enabled for the repository |
+| Deployment permission/environment error | Pages is enabled, the deploy job has `pages: write` and `id-token: write`, and `github-pages` environment rules permit your branch |
+| Old content after a push | Wait for the latest deployment to succeed, then refresh the browser |
+
+GitHub Pages exposes the built client code publicly; do not place credentials
+in the application. Repository visibility and site visibility are separate
+concerns. Custom domains require additional Pages/DNS configuration beyond this
+guide.
+
+References: [Vite static deployment](https://vite.dev/guide/static-deploy.html)
+and [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages).
+
 ## Development
 
 ### Commands
