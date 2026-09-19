@@ -28,6 +28,8 @@
   .color-key td { padding: 1mm .5mm; }
   .key-entry { gap: 1.5mm; }
   .key-entry > strong { font-size: 12pt; width: 6mm; }
+  .key-entry > strong.wide-results { font-size: 9pt; width: 10mm; }
+  .key-entry > strong span { line-height: 1.15; }
   .key-swatch { width: 7mm; height: 7mm; }
   .key-entry > span { font-size: 8pt; }
   .key-entry small { font-size: 7pt; margin-top: .5mm; }

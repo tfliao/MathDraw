@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { autoDimensions, dimensionError } from './domain/dimensions'
 import { worksheetLayout } from './domain/layout'
 import { createPuzzle } from './domain/puzzle'
@@ -8,6 +8,9 @@ import { useImageInput } from './image/useImageInput'
 import { Worksheet } from './components/Worksheet'
 import type { ViewMode } from './components/Worksheet'
 import { usePrint } from './components/usePrint'
+import { AdvancedSettings } from './components/AdvancedSettings'
+import { DEFAULT_DRAFT, parseSettings } from './components/settingsDraft'
+import { buildProblemPool, settingsErrors } from './domain/settings'
 import './App.css'
 import './print.css'
 
@@ -15,6 +18,11 @@ function App() {
   const [rows, setRows] = useState('20')
   const [columns, setColumns] = useState('16')
   const [autoSize, setAutoSize] = useState(false)
+  const [settingsDraft, setSettingsDraft] = useState(DEFAULT_DRAFT)
+  const settings = useMemo(() => parseSettings(settingsDraft), [settingsDraft])
+  const invalidSettings = Object.values(settingsErrors(settings)).some(Boolean)
+  const resultCapacity = useMemo(() => invalidSettings ? 0 : buildProblemPool(settings).size, [settings, invalidSettings])
+  const effectiveColors = Math.min(settings.maxColors, resultCapacity)
   const rowsError = autoSize ? null : dimensionError(rows)
   const columnsError = autoSize ? null : dimensionError(columns, 'columns')
   const { image, loading, error: imageError, selectFile } = useImageInput()
@@ -43,8 +51,8 @@ function App() {
   }
 
   async function generate() {
-    if (!image || rowsError || columnsError || gridRows === undefined || gridColumns === undefined) {
-      setGenerationError('Choose a picture and valid grid dimensions first.')
+    if (!image || rowsError || columnsError || invalidSettings || gridRows === undefined || gridColumns === undefined) {
+      setGenerationError('Choose a picture and valid grid and advanced settings first.')
       return
     }
     const id = ++request.current
@@ -54,8 +62,8 @@ function App() {
     await new Promise<void>(resolve => setTimeout(resolve, 30))
     if (id !== request.current) return
     try {
-      const grid = processImage(image, gridRows, gridColumns)
-      setSnapshot({ puzzle: createPuzzle(grid), revision })
+      const grid = processImage(image, gridRows, gridColumns, effectiveColors)
+      setSnapshot({ puzzle: createPuzzle(grid, settings), revision })
       setView('puzzle')
     } catch (cause) {
       setGenerationError(cause instanceof Error ? cause.message : 'Could not create the puzzle. Please try again.')
@@ -75,7 +83,7 @@ function App() {
         <section className="intro">
           <p className="eyebrow">A little math. A little magic.</p>
           <h1>Little sums,<br /><span>big pictures.</span></h1>
-          <p>Turn a favorite picture into a color-by-addition adventure.<br className="desktop-break" /> Just print, solve, and bring it to life.</p>
+          <p>Turn a favorite picture into a color-by-math adventure.<br className="desktop-break" /> Just print, solve, and bring it to life.</p>
         </section>
         <div className="workspace">
           <section className="setup panel" aria-labelledby="setup-title">
@@ -106,7 +114,10 @@ function App() {
             </div>
             <p className="help" id="grid-help">4-24 rows and 4-64 columns. 24 columns best fits A4.</p>
             {!columnsError && gridColumns !== undefined && gridColumns > 24 && <p className="stale-notice" role="status">24 columns best fits A4. Choose larger paper for this wider grid; cells will not be shrunk.</p>}
-            <button className="primary-button" disabled={busy || printing || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
+            <AdvancedSettings value={settingsDraft} disabled={printing} onChange={value => { changedInputs(); setSettingsDraft(value) }} />
+            {invalidSettings && <p className="field-error" role="alert">Check the invalid options in Advanced before creating a puzzle.</p>}
+            {!invalidSettings && effectiveColors < settings.maxColors && <p className="stale-notice" role="status">These math settings provide {resultCapacity} distinct answers, so the color limit is reduced to {effectiveColors}.</p>}
+            <button className="primary-button" disabled={busy || printing || invalidSettings || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
             <p className="help status" role="status">{loading ? 'Opening your picture...' : generating ? 'Finding colors and making your grid...' : ''}</p>
             <p className="field-error" role="alert">{generationError}</p>
             <p className="local-note">Your picture stays in this browser. No uploads, no accounts.</p>
@@ -142,14 +153,14 @@ function App() {
               </div>
               <p className="eyebrow">Picture it. Solve it. Color it.</p>
               <h2>Your next little masterpiece</h2>
-              <p>Choose a picture to get started.<br />We will turn it into simple sums and up to 8 colors.</p>
+              <p>Choose a picture to get started.<br />Start with simple sums and 8 colors, or explore Advanced.</p>
               <div className="step-pills"><span>1 + 2</span><span>Pick a color</span><span>Find the picture</span></div>
             </div>}
           </section>
         </div>
         <section className="how-it-works" aria-label="How it works">
           <p><strong>01 / Make</strong> A favorite photo becomes a tiny pixel picture.</p>
-          <p><strong>02 / Solve</strong> Every square has a sum using numbers 1-9.</p>
+          <p><strong>02 / Solve</strong> Start with addition, or choose your own math challenge.</p>
           <p><strong>03 / Color</strong> Match answers to colors and reveal the picture.</p>
         </section>
       </main>

@@ -3,10 +3,10 @@ import { colorDistance, rgbToLab } from './color'
 import type { Rgb } from './color'
 import { MIN_COLOR_DISTANCE, reducePalette } from './palette'
 
-function assertPalette(colors: readonly Rgb[]) {
-  const result = reducePalette(colors)
+function assertPalette(colors: readonly Rgb[], maximumColors = 8) {
+  const result = reducePalette(colors, maximumColors)
   expect(result.palette.length).toBeGreaterThanOrEqual(1)
-  expect(result.palette.length).toBeLessThanOrEqual(8)
+  expect(result.palette.length).toBeLessThanOrEqual(maximumColors)
   expect(result.assignments).toHaveLength(colors.length)
   expect(new Set(result.assignments).size).toBe(result.palette.length)
   result.palette.forEach((color, a) => {
@@ -15,7 +15,7 @@ function assertPalette(colors: readonly Rgb[]) {
       expect(colorDistance(rgbToLab(color), rgbToLab(other))).toBeGreaterThanOrEqual(MIN_COLOR_DISTANCE)
     })
   })
-  expect(reducePalette(colors)).toEqual(result)
+  expect(reducePalette(colors, maximumColors)).toEqual(result)
   return result
 }
 
@@ -42,6 +42,17 @@ describe('perceptually separated palette', () => {
   it('rejects invalid input', () => {
     expect(() => reducePalette([])).toThrow()
     expect(() => reducePalette([[256, 0, 0]])).toThrow()
+    expect(() => reducePalette([[0, 0, 0]], 17)).toThrow()
+    expect(() => reducePalette([[0, 0, 0]], 0)).toThrow()
+  })
+  it('uses configurable limits on maximum-sized grids without losing separation', () => {
+    const colors: Rgb[] = Array.from({ length: 1536 }, (_, n) => [n * 37 % 256, n * 71 % 256, n * 13 % 256])
+    colors[0] = [255, 255, 255]
+    for (const limit of [1, 3, 8, 16]) {
+      const result = assertPalette(colors, limit)
+      expect(result.palette).toContainEqual([255, 255, 255])
+      if (limit === 16) expect(result.palette.length).toBeGreaterThan(8)
+    }
   })
   it('maintains separation on seeded varied palettes and arbitrary input order', () => {
     let seed = 123456

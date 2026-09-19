@@ -9,7 +9,7 @@ test('puzzle sums share a stable key and reveal the same picture', async ({ page
   await expect(grid).toBeVisible()
   const problems = await grid.locator('td').allTextContents()
   expect(problems).toHaveLength(320)
-  const key = await page.locator('.app-shell .color-key td').evaluateAll(cells => cells.map(cell => ({ result: Number(cell.getAttribute('data-result')), color: cell.getAttribute('data-color') })))
+  const key = await page.locator('.app-shell .color-key td').evaluateAll(cells => cells.map(cell => ({ result: Number(cell.getAttribute('data-results')), color: cell.getAttribute('data-color') })))
   for (const problem of problems) {
     expect(problem).toMatch(/^[1-9]\+[1-9]$/)
     expect(key.some(entry => entry.result === problem.split('+').reduce((sum, part) => sum + Number(part), 0))).toBe(true)

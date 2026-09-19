@@ -2,39 +2,29 @@ import { isWhite, toHex } from './color'
 import type { Rgb } from './color'
 import { assertDimensions } from './dimensions'
 import type { ColorGrid } from './palette'
+import { buildProblemPool, DEFAULT_SETTINGS } from './settings'
+import type { MathProblem, PuzzleSettings } from './settings'
 
-export type OperandPair = readonly [number, number]
-export interface PuzzleCell {
-  readonly a: number
-  readonly b: number
+export interface PuzzleCell extends MathProblem {
   readonly colorIndex: number
 }
 export interface KeyEntry {
   readonly color: Rgb
   readonly hex: string
   readonly label: string
-  readonly result: number
+  readonly results: readonly number[]
   readonly colorIndex: number
 }
 export interface Puzzle extends ColorGrid {
   readonly cells: readonly PuzzleCell[]
   readonly key: readonly KeyEntry[]
+  readonly settings: PuzzleSettings
 }
 
-export const OPERANDS: ReadonlyMap<number, readonly OperandPair[]> = new Map(
-  Array.from({ length: 17 }, (_, index) => {
-    const sum = index + 2
-    const pairs: OperandPair[] = []
-    for (let a = 1; a <= 9; a++) {
-      if (sum - a >= 1 && sum - a <= 9) pairs.push(Object.freeze([a, sum - a]))
-    }
-    return [sum, Object.freeze(pairs)]
-  }),
-)
-
-export function createPuzzle(grid: ColorGrid, random: () => number = Math.random): Puzzle {
+export function createPuzzle(grid: ColorGrid, settings: PuzzleSettings = DEFAULT_SETTINGS, random: () => number = Math.random): Puzzle {
   assertDimensions(grid.rows, grid.columns)
-  if (grid.palette.length < 1 || grid.palette.length > 8 ||
+  const pool = buildProblemPool(settings)
+  if (grid.palette.length < 1 || grid.palette.length > settings.maxColors ||
       grid.assignments.length !== grid.rows * grid.columns ||
       grid.assignments.some(index => !Number.isInteger(index) || index < 0 || index >= grid.palette.length)) {
     throw new Error('The color grid is incomplete or invalid.')
@@ -44,28 +34,46 @@ export function createPuzzle(grid: ColorGrid, random: () => number = Math.random
       grid.palette.some(rgb => rgb.some(channel => !Number.isInteger(channel) || channel < 0 || channel > 255))) {
     throw new Error('The palette must contain unique, used RGB colors.')
   }
+  if (grid.palette.length > pool.size) throw new Error('These operators and operands cannot produce enough results for the palette. Reduce the color limit.')
   function pick(length: number) {
     const value = random()
     if (!Number.isFinite(value) || value < 0 || value >= 1) throw new Error('Random source must return a number from 0 up to, but not including, 1.')
     return Math.floor(value * length)
   }
-  const sums = Array.from({ length: 17 }, (_, index) => index + 2)
-  for (let index = sums.length - 1; index > 0; index--) {
-    const other = pick(index + 1)
-    ;[sums[index], sums[other]] = [sums[other], sums[index]]
+  function shuffle<T>(values: T[]) {
+    for (let index = values.length - 1; index > 0; index--) {
+      const other = pick(index + 1)
+      ;[values[index], values[other]] = [values[other], values[index]]
+    }
+    return values
   }
+  const available = shuffle([...pool.keys()])
+  const counts = grid.palette.map((_, color) => grid.assignments.filter(index => index === color).length)
+  const results = grid.palette.map(() => [available.pop()!])
+  const allocationOrder = shuffle(grid.palette.map((_, index) => index))
+  if (settings.multiMap) {
+    for (let pass = 1; pass < 3; pass++) {
+      for (const color of allocationOrder) {
+        if (available.length > 0 && counts[color] > pass) results[color].push(available.pop()!)
+      }
+    }
+  }
+  // Cycle through shuffled result schedules to use every key entry at least once.
+  const schedules = results.map((values, color) => shuffle(Array.from({ length: counts[color] }, (_, index) => values[index % values.length])))
+  const cursors = grid.palette.map(() => 0)
   const palette = Object.freeze(grid.palette.map(color => Object.freeze<Rgb>([...color])))
   const key = Object.freeze(palette.map((color, colorIndex) => Object.freeze({
-    color, colorIndex, hex: toHex(color), result: sums[colorIndex],
+    color, colorIndex, hex: toHex(color), results: Object.freeze(results[colorIndex].sort((a, b) => a - b)),
     label: isWhite(color) ? 'Leave white' : `Color ${colorIndex + 1}`,
-  })).sort((a, b) => a.result - b.result))
+  })).sort((a, b) => a.results[0] - b.results[0]))
   const cells = Object.freeze(grid.assignments.map(colorIndex => {
-    const pairs = OPERANDS.get(sums[colorIndex])!
-    const [a, b] = pairs[pick(pairs.length)]
-    return Object.freeze({ a, b, colorIndex })
+    const result = schedules[colorIndex][cursors[colorIndex]++]
+    const problems = pool.get(result)!
+    return Object.freeze({ ...problems[pick(problems.length)], colorIndex })
   }))
   return Object.freeze({
     rows: grid.rows, columns: grid.columns, palette,
     assignments: Object.freeze([...grid.assignments]), key, cells,
+    settings: Object.freeze({ ...settings, operators: Object.freeze([...settings.operators]) }),
   })
 }

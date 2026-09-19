@@ -564,7 +564,7 @@ ignored `dist`; it can be served by a static web host.
 - [x] Discuss technical/behavioral choices with the user.
 - [x] Record the V2 plan in Git before implementation.
 - [x] Auto sizing and wider readable worksheets, reviewed and committed.
-- [ ] Advanced arithmetic, multi-map, and palette controls, reviewed and committed.
+- [x] Advanced arithmetic, multi-map, and palette controls, reviewed and committed.
 - [ ] Integrated validation, documentation, and final review committed.
 
 ### V2 source-maintenance note
@@ -582,3 +582,30 @@ The user must select suitable paper and 100% scale; CSS no longer forces portrai
 orientation. Independent sub-agent review found no significant issues. Passed
 35 targeted domain tests, 26 browser/print cases, production build, and lint,
 including 64-column custom-paper PDFs and all existing A4/Letter print cases.
+
+### V2 advanced iteration decisions and review
+
+- Operator checkboxes specify the allowed set, not a promise that every operator
+  will appear in every small puzzle. Problems are sampled from legal expressions
+  for each assigned result. `*` is displayed as entered, with an explanatory
+  multiplication note on mixed/multiplication worksheets.
+- Results are allocated once per color first; additional results are allocated
+  in shuffled round-robin passes, capped at three and at the color's cell count.
+  Shuffled per-color schedules guarantee that every listed result is actually
+  used. Fewer results are legitimate when math capacity or cell counts are small.
+- Preserve original physical cell size for three-character expressions; enlarge
+  all cells in the snapshot to 12 mm for longer expressions, maintaining square
+  cells and 10 pt text. Screen cells likewise grow from 32 to 48 pixels.
+- Group key entries by color, sort by the smallest answer, and place answers on
+  separate lines so three four-digit multiplication results remain legible.
+  Physical height recommendations account for legend row count and result lines.
+- Chromium's fractional table-column distribution can add less than one CSS pixel
+  to the final column at 64 columns. Advanced print assertions allow this
+  sub-0.27-mm rounding difference, while independently enforcing cell size,
+  minimum font size, expression fit, page count, and complete content.
+
+The independent sub-agent review found no significant issues. Passed 60 targeted
+domain tests, 32 targeted browser/print cases, production build, and lint. The
+maximum-width advanced case includes more than eight separated colors, three
+answers per color, four-digit results, and exact arithmetic/key extraction from
+both puzzle and answer-key PDFs on sufficiently large paper.

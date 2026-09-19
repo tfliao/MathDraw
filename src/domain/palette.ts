@@ -1,9 +1,9 @@
 import { colorDistance, isWhite, rgbToLab, toHex } from './color'
 import type { Lab, Rgb } from './color'
 import { MAX_CELLS } from './dimensions'
+import { DEFAULT_MAX_COLORS, MAX_COLORS } from './settings'
 
 export const MIN_COLOR_DISTANCE = 25
-export const MAX_COLORS = 8
 
 export interface ColorGrid {
   readonly rows: number
@@ -41,7 +41,8 @@ function representative(cluster: readonly Sample[]): Sample {
   return best
 }
 
-export function reducePalette(colors: readonly Rgb[]): Pick<ColorGrid, 'palette' | 'assignments'> {
+export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MAX_COLORS): Pick<ColorGrid, 'palette' | 'assignments'> {
+  if (!Number.isInteger(maximumColors) || maximumColors < 1 || maximumColors > MAX_COLORS) throw new Error('Maximum colors must be a whole number from 1 to 16.')
   if (colors.length === 0 || colors.length > MAX_CELLS) throw new Error(`Provide between 1 and ${MAX_CELLS} cell colors.`)
   const unique = new Map<string, Sample>()
   for (const rgb of colors) {
@@ -56,7 +57,7 @@ export function reducePalette(colors: readonly Rgb[]): Pick<ColorGrid, 'palette'
   const samples = [...unique.values()]
   const frequent = samples.reduce((best, sample) => sample.count > best.count ? sample : best)
   let centers = [samples.find(sample => isWhite(sample.rgb)) ?? frequent]
-  while (centers.length < Math.min(MAX_COLORS, samples.length)) {
+  while (centers.length < Math.min(maximumColors, samples.length)) {
     let next: Sample | undefined
     let score = -1
     for (const sample of samples) {

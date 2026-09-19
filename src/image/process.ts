@@ -2,6 +2,7 @@ import { assertDimensions } from '../domain/dimensions'
 import { reducePalette } from '../domain/palette'
 import type { ColorGrid } from '../domain/palette'
 import { fitImage, sampleCells, SAMPLES_PER_CELL } from '../domain/sampling'
+import { DEFAULT_MAX_COLORS } from '../domain/settings'
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_PIXELS = 40_000_000
@@ -68,12 +69,12 @@ export async function loadImage(file: File): Promise<LoadedImage> {
   }
 }
 
-export function processImage(image: LoadedImage, rows: number, columns: number): ColorGrid {
+export function processImage(image: LoadedImage, rows: number, columns: number, maximumColors = DEFAULT_MAX_COLORS): ColorGrid {
   assertDimensions(rows, columns)
   validateImageDimensions(image.bitmap.width, image.bitmap.height)
   const { canvas, context } = makeCanvas(columns * SAMPLES_PER_CELL, rows * SAMPLES_PER_CELL)
   const fit = fitImage(image.bitmap.width, image.bitmap.height, canvas.width, canvas.height)
   context.drawImage(image.bitmap, fit.x, fit.y, fit.width, fit.height)
   const colors = sampleCells(context.getImageData(0, 0, canvas.width, canvas.height).data, rows, columns)
-  return { rows, columns, ...reducePalette(colors) }
+  return { rows, columns, ...reducePalette(colors, maximumColors) }
 }
