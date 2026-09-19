@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadImage } from './process'
 import type { LoadedImage } from './process'
+import { userFacingError } from '../i18n/locale'
+import type { UserFacingError } from '../i18n/locale'
 
 export function useImageInput() {
   const [image, setImage] = useState<LoadedImage | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<UserFacingError | null>(null)
   const active = useRef<LoadedImage | null>(null)
   const request = useRef(0)
 
@@ -20,7 +22,7 @@ export function useImageInput() {
     active.current?.dispose()
     active.current = null
     setImage(null)
-    setError('')
+    setError(null)
     setLoading(Boolean(file))
     if (!file) return
     try {
@@ -32,7 +34,7 @@ export function useImageInput() {
       active.current = result
       setImage(result)
     } catch (cause) {
-      if (id === request.current) setError(cause instanceof Error ? cause.message : 'Could not load this picture. Please try again.')
+      if (id === request.current) setError(userFacingError(cause, 'loadFailed'))
     } finally {
       if (id === request.current) setLoading(false)
     }

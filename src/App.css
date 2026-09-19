@@ -1,5 +1,8 @@
 .app-shell { max-width: 1240px; margin: auto; padding: 0 40px; }
-.site-header { display: flex; align-items: center; justify-content: space-between; padding: 28px 0; border-bottom: 1px solid #e3e7df; }
+.site-header { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; padding: 28px 0; border-bottom: 1px solid #e3e7df; }
+.header-tools { display: flex; flex: 1; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 12px; min-width: 220px; }
+.language-field { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.language-field select { max-width: 180px; padding: 7px; border: 1px solid #dce3d9; border-radius: 7px; background: white; color: #233e39; font: inherit; }
 .brand { display: inline-flex; gap: 10px; align-items: center; font-size: 23px; font-weight: 800; text-decoration: none; letter-spacing: -1px; }
 .brand-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #245f54; color: white; font-size: 28px; }
 .privacy-note { color: #63766c; font-size: 12px; }
@@ -7,6 +10,7 @@
 .eyebrow { color: #a5522d; font-size: 11px; text-transform: uppercase; font-weight: 750; letter-spacing: 1.8px; margin-bottom: 14px; }
 h1 { font-size: clamp(38px, 5vw, 58px); line-height: 1.07; letter-spacing: -2.5px; margin-bottom: 18px; }
 h1 span { color: #317768; }
+:lang(zh-TW) h1 { letter-spacing: 0; line-height: 1.3; }
 .intro > p:last-child { color: #66736e; line-height: 1.7; font-size: 15px; }
 .workspace { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 26px; align-items: start; }
 .panel { background: white; border: 1px solid #e1e5dc; border-radius: 18px; box-shadow: 0 4px 18px #1c443605; }

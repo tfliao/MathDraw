@@ -1,9 +1,10 @@
-import { isWhite, toHex } from './color'
+import { toHex } from './color'
 import type { Rgb } from './color'
 import { assertDimensions } from './dimensions'
 import type { ColorGrid } from './palette'
-import { buildProblemPool, DEFAULT_SETTINGS, NO_RESULTS_MESSAGE } from './settings'
+import { buildProblemPool, DEFAULT_SETTINGS } from './settings'
 import type { MathProblem, PuzzleSettings } from './settings'
+import { UserFacingError } from '../i18n/locale'
 
 export interface PuzzleCell extends MathProblem {
   readonly colorIndex: number
@@ -11,7 +12,6 @@ export interface PuzzleCell extends MathProblem {
 export interface KeyEntry {
   readonly color: Rgb
   readonly hex: string
-  readonly label: string
   readonly results: readonly number[]
   readonly colorIndex: number
 }
@@ -24,7 +24,7 @@ export interface Puzzle extends ColorGrid {
 export function createPuzzle(grid: ColorGrid, settings: PuzzleSettings = DEFAULT_SETTINGS, random: () => number = Math.random): Puzzle {
   assertDimensions(grid.rows, grid.columns)
   const pool = buildProblemPool(settings)
-  if (pool.size === 0) throw new Error(NO_RESULTS_MESSAGE)
+  if (pool.size === 0) throw new UserFacingError('noResults')
   if (grid.palette.length < 1 || grid.palette.length > settings.maxColors ||
       grid.assignments.length !== grid.rows * grid.columns ||
       grid.assignments.some(index => !Number.isInteger(index) || index < 0 || index >= grid.palette.length)) {
@@ -65,7 +65,6 @@ export function createPuzzle(grid: ColorGrid, settings: PuzzleSettings = DEFAULT
   const palette = Object.freeze(grid.palette.map(color => Object.freeze<Rgb>([...color])))
   const key = Object.freeze(palette.map((color, colorIndex) => Object.freeze({
     color, colorIndex, hex: toHex(color), results: Object.freeze(results[colorIndex].sort((a, b) => a - b)),
-    label: isWhite(color) ? 'Leave white' : `Color ${colorIndex + 1}`,
   })).sort((a, b) => a.results[0] - b.results[0]))
   const cells = Object.freeze(grid.assignments.map(colorIndex => {
     const result = schedules[colorIndex][cursors[colorIndex]++]

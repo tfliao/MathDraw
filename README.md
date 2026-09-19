@@ -52,6 +52,28 @@ Changing any generation option keeps the previous preview but disables printing
 until you generate again. Pictures and puzzles are not saved across page reloads;
 save a PDF if you want to keep a puzzle.
 
+### Language / 語言
+
+Use **Language / 語言** near the top of the page to select **English** or
+**繁體中文（台灣）**. On a first visit, MathDraw uses the first supported browser
+language: English variants use English, and Chinese variants use Traditional
+Chinese (Taiwan). Unsupported browser languages fall back to English.
+
+Your explicit choice is saved locally in this browser and takes precedence on
+later visits. If browser storage is unavailable, a translated notice explains
+that the choice lasts only until reload; the app remains usable.
+
+Changing language translates the controls, validation and existing error
+messages, worksheet instructions, color labels, and printed puzzle/answer key.
+It does **not** regenerate a puzzle, change its arithmetic or color mappings,
+discard your image/settings, change the current view, or make a stale puzzle
+printable. The language selector is disabled while printing is being prepared
+or the print dialog is open. Browser/operating-system file pickers and print
+dialogs follow their own language settings.
+
+在頁面上方的「語言」選擇「繁體中文（台灣）」即可使用繁體中文介面與學習單。
+切換語言不會重新出題，也不會清除圖片或設定；列印視窗本身的語言則由瀏覽器決定。
+
 ### Options
 
 | Option | Default | Behavior |
@@ -127,7 +149,7 @@ The repository includes [the Pages workflow](.github/workflows/deploy-pages.yml)
 You still need to enable GitHub Pages in the repository settings and push the
 workflow before deployment can run.
 
-### 1. Publish the source repository
+### 1. Connect the source repository
 
 Create an empty GitHub repository, for example `MathDraw`. Do not initialize a
 second README or license there when pushing this existing Git history. A public
@@ -139,13 +161,17 @@ If this local repository does not already have an `origin`, replace
 
 ```powershell
 git remote add origin https://github.com/YOUR-USERNAME/MathDraw.git
-git push -u origin master
 ```
 
-The examples use `master`, the branch used by this project. If you use `main`
-instead, change both the push command and the workflow's `push.branches`. If an
-`origin` already exists, inspect it with `git remote -v` rather than adding it
-again. Publish only intended source commits, not personal images or secrets.
+If an `origin` already exists, inspect it with `git remote -v` rather than adding
+it again. Publish only intended source commits, not personal images or secrets.
+For a genuinely empty remote, the repository owner must first establish its
+default branch as a one-time bootstrap, separate from the ongoing PR workflow
+below. An assistant must not push `master`, including during bootstrap.
+
+The examples use `master`, the default branch used by this project. If you use
+`main` instead, change the workflow's `push.branches` and the PR target branch.
+All ongoing changes go through a feature branch and pull request.
 
 ### 2. Enable GitHub Actions publishing
 
@@ -158,7 +184,13 @@ For a repository named `MathDraw`, the project-site URL will normally be:
 https://YOUR-USERNAME.github.io/MathDraw/
 ```
 
-### 3. Configure and push the included workflow
+### 3. Configure the included workflow through a pull request
+
+Start any deployment changes on a feature branch, not `master`:
+
+```powershell
+git switch -c feat/pages-setup
+```
 
 The single file `.github\workflows\deploy-pages.yml` contains both the build and
 deployment jobs. It runs on pushes to `master` and supports manual runs. No
@@ -189,19 +221,24 @@ The build command includes type checking. This workflow runs unit
 tests and lint but not Playwright; run the browser/PDF suite separately as
 described under Development.
 
-After enabling Pages and reviewing any branch/base-path adjustments, commit any
-adjustments and push:
+After enabling Pages, make any required branch/base-path adjustments, run the
+relevant checks, and commit only intended changes. Push the feature branch:
 
 ```powershell
-git push origin master
+git push -u origin feat/pages-setup
 ```
+
+Open a pull request targeting `master`. The user performs the final review and
+decides whether to merge or close it; the assistant never pushes `master` or
+merges/closes the PR. If the workflow already needs no changes, no new commit or
+PR is needed just to enable Pages in Settings.
 
 ### 4. Open the deployed site
 
 Open the repository's **Actions** tab and wait for the deployment workflow to
 finish. The `github-pages` environment and **Settings > Pages** provide the
-published URL. Later pushes to the configured branch rebuild the site. You can
-also use **Run workflow** once the workflow is on the default branch.
+published URL. Merging reviewed PRs into the configured branch rebuilds the site.
+You can also use **Run workflow** once the workflow is on the default branch.
 
 Check that the page loads, generate a puzzle, and open its print preview. The
 public site does not upload visitors' pictures to GitHub.
@@ -261,12 +298,20 @@ Run focused tests during development:
 ```powershell
 npm.cmd test -- src\domain\settings.test.ts src\domain\puzzle.test.ts
 npm.cmd run test:e2e -- results.spec.ts advanced-print.spec.ts
+npm.cmd test -- src\i18n\locale.test.ts
+npm.cmd run test:e2e -- language.spec.ts
 ```
 
 Use filenames for Playwright selectors on Windows; they are regular-expression
 selectors, not filesystem paths. Browser tests launch their own server on port
 4173, so stop any preview/test server using that port first. Generated PDFs and
 failure traces go to ignored `test-results`.
+
+Existing English browser tests explicitly use `en-US`; language tests override
+the browser locale where needed. Chinese PDF coverage requires available CJK
+fonts in the Chromium environment. PDF assertions normalize whitespace and
+Unicode compatibility characters because Chinese glyphs may be extracted as
+separate text items or equivalent radicals.
 
 ### Code organization
 
@@ -277,6 +322,7 @@ failure traces go to ignored `test-results`.
 | `src\domain\settings.ts`, `puzzle.ts` | Legal expressions, result filtering, immutable puzzles |
 | `src\domain\layout.ts` | Physical worksheet dimensions and paper recommendations |
 | `src\image` | Local image validation/decoding and resource lifecycle |
+| `src\i18n` | Typed English/Traditional Chinese catalogs, language detection, preference persistence |
 | `src\components` | Advanced controls, shared worksheet, print orchestration |
 | `src\App.tsx` | Setup state, generation, stale snapshots, screen/print integration |
 | `src\print.css` | Print-only layout and physical sizing |
@@ -299,6 +345,32 @@ failure traces go to ignored `test-results`.
   discard stale asynchronous work.
 - Reuse `Worksheet` for screen and print. Keep readable cell/font sizes, and
   test larger paper whenever changing geometry or key layout.
+- Language changes are presentation-only: do not regenerate or invalidate a
+  puzzle. Resolve worksheet color labels and stored error codes in the active
+  language at render time rather than storing translated text in puzzle state.
+
+### Maintaining translations
+
+`src\i18n\en.ts` defines the `Messages` shape; `src\i18n\zh-TW.ts` implements the
+same keys and function signatures. Add or update both catalogs together,
+including accessible names, validation, print instructions, page title, and
+description. Keep numeric formatting arguments in their documented order
+(rows/columns can differ between messages), and test singular/plural output
+where relevant. Keep the selector's language names in their own languages.
+
+Use the active messages for rendered copy. Recognized failures carry a
+`UserFacingError` code so an existing error can change language; unexpected
+causes are logged and use a translated fallback instead of exposing raw
+exception text. Keep palette colors, result mappings, and expressions independent
+of translated labels. Run the locale unit tests and the language browser/PDF
+tests when modifying catalogs or switching behavior.
+
+### Branch and pull request policy
+
+Work on a named feature branch and push that branch, then open a pull request
+against `master`. The user performs the final review and merges or closes the
+PR. Assistants must never push directly to `master`, merge a PR, or close it.
+This also applies to documentation and deployment changes.
 
 Keep changes focused, add relevant coverage, review before committing, and make
 small meaningful commits. Update documentation when behavior changes. Do not

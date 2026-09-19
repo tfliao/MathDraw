@@ -3,6 +3,7 @@ import { reducePalette } from '../domain/palette'
 import type { ColorGrid } from '../domain/palette'
 import { fitImage, sampleCells, SAMPLES_PER_CELL } from '../domain/sampling'
 import { DEFAULT_MAX_COLORS } from '../domain/settings'
+import { UserFacingError } from '../i18n/locale'
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_PIXELS = 40_000_000
@@ -16,17 +17,17 @@ export interface LoadedImage {
 
 export function validateFile(file: Pick<File, 'size' | 'type'>): void {
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-    throw new Error('Choose a PNG, JPG, or WebP image.')
+    throw new UserFacingError('unsupportedImage')
   }
-  if (file.size === 0) throw new Error('This file is empty. Choose another picture.')
-  if (file.size > MAX_FILE_SIZE) throw new Error('This picture is too large. Choose a file up to 10 MiB.')
+  if (file.size === 0) throw new UserFacingError('emptyFile')
+  if (file.size > MAX_FILE_SIZE) throw new UserFacingError('fileTooLarge')
 }
 
 export function validateImageDimensions(width: number, height: number): void {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) {
-    throw new Error('This picture has invalid dimensions.')
+    throw new UserFacingError('invalidImageDimensions')
   }
-  if (width * height > MAX_PIXELS) throw new Error('This picture exceeds 40 million pixels. Resize it before trying again.')
+  if (width * height > MAX_PIXELS) throw new UserFacingError('tooManyPixels')
 }
 
 function makeCanvas(width: number, height: number) {
@@ -34,7 +35,7 @@ function makeCanvas(width: number, height: number) {
   canvas.width = width
   canvas.height = height
   const context = canvas.getContext('2d', { willReadFrequently: true })
-  if (!context) throw new Error('Your browser could not create a drawing canvas.')
+  if (!context) throw new UserFacingError('canvasFailed')
   context.fillStyle = '#ffffff'
   context.fillRect(0, 0, width, height)
   context.imageSmoothingEnabled = true
@@ -48,7 +49,7 @@ export async function loadImage(file: File): Promise<LoadedImage> {
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
   } catch {
-    throw new Error('This picture could not be decoded. Try another PNG, JPG, or WebP image.')
+    throw new UserFacingError('decodeFailed')
   }
   try {
     validateImageDimensions(bitmap.width, bitmap.height)
@@ -56,7 +57,7 @@ export async function loadImage(file: File): Promise<LoadedImage> {
     const { canvas, context } = makeCanvas(Math.max(1, Math.round(bitmap.width * scale)), Math.max(1, Math.round(bitmap.height * scale)))
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(value => value ? resolve(value) : reject(new Error('Could not prepare the picture preview.')), 'image/png')
+      canvas.toBlob(value => value ? resolve(value) : reject(new UserFacingError('previewFailed')), 'image/png')
     })
     const previewUrl = URL.createObjectURL(blob)
     return {

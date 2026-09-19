@@ -756,3 +756,62 @@ cases passed across runs, including existing PDF regressions: one initial
 pre-upload page-load timeout passed when the four image cases were rerun. The
 strengthened two-case first-load/opt-out coverage also passed on its final run.
 The local production preview serves the rebuilt application.
+
+## 15. English and Traditional Chinese (Taiwan)
+
+### Released-source workflow
+
+The first version is released. From this feature onward, work on a new feature
+branch, self-review locally, then push that branch and open a GitHub pull request
+against `master`. Never push directly to `master`. The user performs final review
+and PR closure/merging. This feature uses `feat/english-zh-tw`.
+
+### Requirements and decisions
+
+- Maintain separate, typed English and Traditional Chinese (Taiwan, `zh-TW`)
+  string tables, including dynamic messages, validation, accessible labels, and
+  printed worksheets. No translation service or network dependency is needed.
+- Resolve initial language from a saved explicit selection, then supported
+  browser languages in preference order, then English. English regional tags
+  select English; Chinese tags select the supported Taiwan Traditional Chinese.
+- Add a visible, accessible language selector. Save explicit choices locally;
+  if browser storage is unavailable, keep switching functional and explain that
+  the preference cannot be saved.
+- Language changes affect presentation only: keep the uploaded image, settings,
+  existing problems, palette, mappings, and print readiness. Translate existing
+  errors and worksheets immediately rather than storing translated UI text.
+- Translate document language/title/description. Native file-picker and print
+  dialog chrome remain controlled by the browser/OS language.
+- Preserve readable screen/mobile/print layouts and existing English behavior;
+  cover detection/fallback, switching/reload, validation, image failures, and
+  Chinese worksheets/PDFs. Document how to maintain and add catalogs.
+
+### Implementation details
+
+- Use a small React language context and TypeScript catalogs rather than adding
+  an internationalization dependency for two bundled languages. The English
+  catalog defines the shared key and formatter signatures; the Taiwan catalog
+  must implement every entry with the same arguments.
+- Keep known user-facing failures as message codes. Render them in the current
+  language, including failures that happened before a language switch. Unexpected
+  exception details remain in the developer console; users see a translated
+  actionable fallback instead of potentially untranslated browser diagnostics.
+- Remove the stored English color label from immutable puzzle key entries.
+  Labels now derive from the existing RGB value and color index at render time;
+  language switching does not modify any puzzle data.
+- Keep the browser's English regression context explicit, and exercise Chinese
+  separately. Use native local fonts and browser PDF generation; no font service,
+  image upload, or translation network calls are introduced.
+
+### Local review and results
+
+Independent code-review passes over the application and then the separate
+test/documentation changes found no significant issues. Passed 139 targeted
+unit tests and all 68 browser cases across focused runs, including the original
+English PDF cases and Chinese puzzle/solution PDFs with extractable translated
+text. Chinese mobile layouts, browser detection, saved choices, storage denial,
+unchanged puzzle data, and existing error translation are covered. Production
+build, type checking, and lint pass. The local preview serves the rebuilt feature.
+
+The feature will be submitted as a pull request from `feat/english-zh-tw`;
+final review and merging remain with the user.

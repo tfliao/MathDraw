@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { ViewMode } from './Worksheet'
+import { userFacingError } from '../i18n/locale'
+import type { UserFacingError } from '../i18n/locale'
 
 export function usePrint() {
   const [mode, setMode] = useState<ViewMode>('puzzle')
   const [printing, setPrinting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<UserFacingError | null>(null)
   const active = useRef(false)
   const request = useRef(0)
 
@@ -28,7 +30,7 @@ export function usePrint() {
     if (active.current) return
     active.current = true
     const id = ++request.current
-    setError('')
+    setError(null)
     flushSync(() => {
       setMode(selectedMode)
       setPrinting(true)
@@ -43,7 +45,7 @@ export function usePrint() {
       active.current = false
       setMode('puzzle')
       setPrinting(false)
-      setError(cause instanceof Error ? `Could not open printing: ${cause.message}` : 'Could not open printing. Please try again.')
+      setError(userFacingError(cause, 'printFailed'))
     }
   }
 
