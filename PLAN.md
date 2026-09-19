@@ -1,6 +1,9 @@
 # MathDraw implementation plan
 
-Status: Implementation complete. All iterations independently reviewed and committed.
+Status: V1 complete. V2 feature extension approved; implementation in progress.
+
+The V2 section below supersedes V1 limits where explicitly noted. V1 sections
+remain as the historical implementation and decision record.
 
 ## 1. Goal
 
@@ -485,3 +488,86 @@ ignored `dist`; it can be served by a static web host.
   cell. Images with transparency are composited onto white.
 - Decoded-size checks happen after the browser has decoded the source, so they
   do not eliminate decoder memory use for malicious image files.
+
+## 12. V2: sizing and advanced puzzle settings
+
+### Confirmed requirements and decisions
+
+- Add an auto-size toggle outside Advanced. Fit the decoded image aspect ratio
+  into at most 24 columns by 24 rows; show the calculated dimensions. Keep
+  existing manual defaults (16 columns, 20 rows) and default auto size off.
+- For auto size, set the longer dimension to 24 and round the proportional
+  shorter dimension, clamped to the existing minimum of 4. Very narrow images
+  still get white margins; never stretch or crop. Preserve the manual values
+  when toggling back.
+- Manual columns range from 4 to 64; rows remain 4 to 24. Warn above 24 columns
+  that 24 best fits A4 and larger paper is needed. Do not shrink cells or
+  deliberately tile a puzzle across pages. Allow users to choose larger paper.
+- Put difficulty, multi-map, and maximum colors in a collapsed-by-default
+  "Advanced" section, using accessible native controls.
+- Difficulty: zero operands off by default; maximum operand is an integer
+  from 2 to 99, default 9; selectable operator set is `+`, `-`, `*`, default
+  addition only. At least one operator must remain selected.
+- Subtraction results must be nonnegative. The zero toggle only controls
+  operands; subtraction can produce zero even with zero operands disabled.
+- Multi-map defaults off. When on, assign at most three distinct results per
+  color, grouped together in the printed key. A result always determines
+  exactly one color throughout the puzzle.
+- Maximum colors is an integer from 1 to 16, default 8. Keep perceptual color
+  separation and reserved-white behavior. The actual palette can be smaller
+  than requested, including when the chosen arithmetic has fewer results.
+
+### Implementation approach
+
+1. **Sizing and wider layouts**
+   - Split row and column limits; update domain guards and image sample capacity
+     to a maximum of 1,536 cells (24 by 64).
+   - Add deterministic auto dimensions from oriented image width/height.
+   - Wire auto/manual setup, stale-snapshot handling, and width warnings.
+   - Size print content to the actual grid, not a fixed 180 mm clipping box.
+     Preserve 7.5 mm cells and 10 pt text for existing arithmetic. Use user-
+     selected paper orientation/size and report required physical dimensions.
+   - Add targeted domain, browser, and larger-paper PDF coverage.
+2. **Advanced arithmetic and palettes**
+   - Enumerate all legal operand/operator combinations, grouped by result,
+     bounded by 100 squared operand pairs times three operators.
+   - Validate settings once at domain entry points; compute result capacity
+     before quantizing the image, capping the requested palette accordingly.
+     Explain arithmetic-related color reductions in the UI, never fail silently.
+   - Give every palette color one distinct result first. In multi-map mode,
+     distribute remaining results fairly up to three per color, never allocating
+     more results than the color has cells. Use every allocated result at least
+     once, so the key has no unused results.
+   - Store operators, grouped results, and settings in the frozen snapshot;
+     screens and printouts must use the snapshot, not later control changes.
+   - Keep a compact key grouped by color and sorted by its lowest result.
+     Allow one result per line for up to four-digit multiplication answers.
+   - Enlarge cells for longer expressions rather than shrinking fonts. Report
+     when wider cells or larger legends require larger paper, even at 24 columns.
+   - Generalize addition-only headings/instructions, retaining the familiar
+     default addition wording where it remains accurate.
+3. **Integrated validation and handoff**
+   - Cover auto-size boundaries and oriented images, 64-column generation,
+     setting defaults and validation, collapsed controls, all operator subsets,
+     zero semantics, operands 2 and 99, nonnegative subtraction, and actual
+     grouped mappings in the screen and PDF.
+   - Cover insufficient-result palettes, one-color input, 16-color limits,
+     multi-map scarce results/rare colors, frozen snapshots, and stale printing.
+   - Exercise maximum-width and advanced-expression PDFs on sufficiently large
+     custom paper, asserting readable cells, full text, correct mappings, and
+     one page. Preserve all default A4/Letter regressions.
+   - Independently review each iteration with a spawned sub-agent, address
+     findings, and commit each meaningful increment. Record decisions here.
+
+### V2 progress
+
+- [x] Discuss technical/behavioral choices with the user.
+- [x] Record the V2 plan in Git before implementation.
+- [ ] Auto sizing and wider readable worksheets, reviewed and committed.
+- [ ] Advanced arithmetic, multi-map, and palette controls, reviewed and committed.
+- [ ] Integrated validation, documentation, and final review committed.
+
+### V2 source-maintenance note
+
+An existing untracked `OIP.webp` was present at the beginning of this feature
+request. It is user-owned input and will not be modified, removed, or committed.
