@@ -447,9 +447,11 @@ images in the application.
 1. Choose a PNG, JPEG, or WebP picture. Simple, high-contrast pictures work best.
 2. Keep "Auto size from picture" enabled for an image-proportioned grid within
    24 by 24, or turn it off to choose 4-64 columns and 4-64 rows manually.
+   Optionally enable "Skip near-white background" to leave only edge-connected
+   near-white background squares without problems; enclosed white details remain.
 3. Optionally expand "Advanced" to set zero operands, maximum operand (2-99),
    allowed operators, maximum result (0-9801), zero results, multiple results per
-   color, and maximum colors (1-16).
+   color, maximum results per color (1-8), and maximum colors (1-16).
    Defaults are auto sizing, addition, nonzero operands through 9, up to three
    results per color, at most 8 colors, maximum result 99, and zero results disabled.
    Then select "Create puzzle."
@@ -465,12 +467,14 @@ images in the application.
    works through the same dialog. Cells are not automatically shrunk to A4;
    insufficient paper or browser overrides can clip or scale the output.
 
-The key is shared by every cell. A "Leave white" entry still has a problem to solve,
+The key is shared by every problem cell. A "Leave white" entry still has a problem to solve,
 but that square should not be colored. Image colors are simplified and may not
 exactly match available crayons. Neither the original image nor generated puzzles
 are saved across a page refresh; save a PDF before leaving if needed.
+Skipped background squares have no problem and need no color-key entry.
 
-Multiple results per color uses up to three answers, listed vertically beside
+Multiple results per color defaults to up to three answers, configurable to eight,
+listed vertically beside
 one swatch. An answer never refers to two colors. Subtraction never produces
 negative answers; equal operands may produce zero only with "Allow zero results"
 enabled. This is independent of zero operands. Requested color counts are maximums: similar shades, image content,
@@ -815,3 +819,50 @@ build, type checking, and lint pass. The local preview serves the rebuilt featur
 
 The feature will be submitted as a pull request from `feat/english-zh-tw`;
 final review and merging remain with the user.
+
+## 16. Background skipping and configurable result limits
+
+### Branch and confirmed behavior
+
+Start `feat/background-and-result-limits` from freshly fetched `origin/master`
+at b010ae6, including merged PR #1. Work and push only on the feature branch,
+perform independent local review, and open a PR for the user's final review.
+
+The user selected **only near-white areas connected to the image edges**, not
+every near-white cell. Keep enclosed white details solvable.
+
+### Implementation decisions
+
+- Add a "Skip near-white background" toggle, off by default. On the final resized,
+  simplified color grid, consider a color near-white when each RGB channel is
+  at least 240. Flood-fill from all four grid edges using shared sides only;
+  diagonal contact alone does not connect a region to the background.
+- Background cells keep their grid positions but have no math problem. Leave
+  them uncolored on the puzzle and white in the solution. Do not allocate answers
+  to skipped cells or include color-key entries that have no solvable cells.
+  The same palette color can still have a key for enclosed, non-skipped cells.
+- An all-background picture yields a blank grid with a clear localized notice
+  and no empty color-key table. Layout dimensions must remain finite.
+- Add "Maximum results per color", integer 1-8, default 3. It is a cap used when
+  multi-map is enabled; single-map still uses exactly one answer per active
+  color. Fewer answers are valid when cells or legal results are scarce.
+- Retain globally unambiguous mappings, fair result allocation, and use every
+  mapped answer at least once. Keep frozen snapshots, language switching,
+  readable cells, paper-size advice, and stale-print protection consistent.
+- Localize controls, help, and worksheet instructions in both existing catalogs.
+  Cover defaults/validation, edge connectivity, enclosed details, scarce answers,
+  eight-result keys, all-background grids, language switching, and PDF output.
+
+### Local review and validation
+
+The independent code-review sub-agent found no significant issues in the complete
+feature diff. Passed 153 targeted domain/draft/locale unit tests and 61 distinct
+browser cases across focused runs, plus production build, type checking, and lint.
+Coverage includes side-connected backgrounds, enclosed details, diagonal-only
+contact, the near-white threshold, result scarcity and cap boundaries, no-math
+background cells, and finite all-background layout.
+
+Browser coverage includes English and Taiwan Chinese background puzzle/solution
+PDFs, eight-result keys with up to sixteen colors on larger paper, a blank-grid
+PDF, existing A4/Letter print cases, mobile layouts, locale persistence, stale
+printing, and opt-outs. The rebuilt local preview includes the feature.

@@ -1,6 +1,6 @@
 # MathDraw
 
-Turn a picture into a printable color-by-math puzzle. Each square contains a
+Turn a picture into a printable color-by-math puzzle. Each square normally contains a
 math problem; its answer selects a color from a shared key. Coloring the squares
 reveals the pixel picture.
 
@@ -80,12 +80,14 @@ dialogs follow their own language settings.
 | --- | --- | --- |
 | Manual grid | 16 columns, 20 rows | 4-64 in either direction; up to 4,096 cells |
 | Auto size | On | Matches image proportions within 24 by 24; minimum 4 per dimension |
+| Skip near-white background | Off | Leaves edge-connected near-white cells blank; enclosed white details still have problems |
 | Allow zero operands | Off | When enabled, operands may start at 0 instead of 1 |
 | Maximum operand | 9 | Integer from 2 to 99 |
 | Operators | Addition | Any nonempty set of addition, subtraction, and multiplication |
 | Maximum result | 99 | Integer from 0 to 9801; inclusive upper bound for every answer |
 | Allow zero results | Off | Independently permits answer 0; negative answers are never allowed |
-| Multiple results per color | On | Up to 3 answers per color; an answer still identifies exactly one color |
+| Multiple results per color | On | Uses the configured result cap; an answer still identifies exactly one color |
+| Maximum results per color | 3 | Integer from 1 to 8; applies when multiple results are enabled |
 | Maximum colors | 8 | Integer from 1 to 16; actual count may be lower |
 
 Multiplication is displayed with the multiplication sign, not an asterisk.
@@ -102,9 +104,25 @@ The full image is fitted without cropping or stretching. White margins are added
 when necessary, and transparency is composited onto white. White counts as a
 palette color and is labeled **Leave white**.
 
+Enable **Skip near-white background** below the grid settings to leave background
+squares without math problems. Detection uses the final resized, simplified grid:
+every RGB channel must be at least 240, and cells must connect to an outer edge
+through shared sides. Diagonal-only contact does not connect a region. Enclosed
+white/near-white details still have problems, even when they share the background
+color. Resizing and color simplification can change which regions connect.
+
+Skipped squares remain in the grid and should be left uncolored; the solution
+shows them as white. The color key includes only colors used by actual problems.
+An entirely near-white background image produces a blank worksheet with an
+explanation; turn the toggle off or choose another picture to get problems.
+
 Similar shades are merged to keep colors perceptually separated. The palette is
 also limited by the number of legal math answers. Multi-map results are listed
 together beside their swatch, and every listed result is used in the puzzle.
+In **Advanced**, set **Maximum results per color** to 1-8 (default 3).
+This is an upper bound: limited cells or allowed answers may reduce the count.
+Turning multi-map off uses one result per active color and retains your configured
+cap for later use. Larger keys can require larger paper, without shrinking text.
 
 ### Printing
 
@@ -320,6 +338,7 @@ separate text items or equivalent radicals.
 | `src\domain\dimensions.ts` | Manual limits and auto-size calculations |
 | `src\domain\color.ts`, `sampling.ts`, `palette.ts` | Color math, cell sampling, separated palettes |
 | `src\domain\settings.ts`, `puzzle.ts` | Legal expressions, result filtering, immutable puzzles |
+| `src\domain\background.ts` | Near-white classification and edge-connected background detection |
 | `src\domain\layout.ts` | Physical worksheet dimensions and paper recommendations |
 | `src\image` | Local image validation/decoding and resource lifecycle |
 | `src\i18n` | Typed English/Traditional Chinese catalogs, language detection, preference persistence |
@@ -333,8 +352,11 @@ separate text items or equivalent radicals.
 
 - Enumerate legal problems and filter results before determining palette capacity.
   Handle empty result sets explicitly; never generate a zero-color puzzle.
-- An answer maps to exactly one color globally. A color may have up to three
-  answers in multi-map mode, and each listed answer must occur in a cell.
+- An answer maps to exactly one color globally. A color may have up to eight
+  answers in multi-map mode (default cap 3), and each listed answer must occur in
+  a problem cell.
+- Background cells have no arithmetic. Allocate results and key entries using
+  only problem cells, preserve enclosed white details, and handle empty keys.
 - Keep the generated puzzle and settings frozen. View switches and printing
   must not reroll problems; edited controls must mark the snapshot stale.
 - Internal multiplication uses `*`. Use `operatorSymbol` / `problemText` for
