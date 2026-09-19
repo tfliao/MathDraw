@@ -32,7 +32,7 @@ describe('addition puzzles', () => {
       expect(entry.colorIndex).toBe(grid.assignments[index])
       expect(entry.color).toEqual(grid.palette[cell.colorIndex])
     })
-    expect(puzzle.key.find(entry => entry.hex === '#ffffff')?.label).toBe('Leave white')
+    expect(puzzle.key.find(entry => entry.hex === '#ffffff')?.color).toEqual([255, 255, 255])
   })
   it('uses multiple results per color by default when enough cells and answers exist', () => {
     const puzzle = createPuzzle(grid)

@@ -58,7 +58,7 @@ test('print preparation failures are actionable and restore editing', async ({ p
   await setup(page)
   await page.evaluate(() => { window.print = () => { throw new Error('Printing unavailable') } })
   await page.getByRole('button', { name: 'Print answer key', exact: true }).click()
-  await expect(page.getByText('Could not open printing: Printing unavailable')).toBeVisible()
+  await expect(page.getByText('Could not open printing. Please try again.')).toBeVisible()
   await expect(page.getByLabel('Rows', { exact: true })).toBeEnabled()
   await expect(page.locator('.print-root .solution-sheet')).toHaveCount(0)
 })

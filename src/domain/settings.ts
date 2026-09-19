@@ -1,9 +1,12 @@
+import { en } from '../i18n/en'
+import type { Messages } from '../i18n/en'
+
 export const OPERATORS = ['+', '-', '*'] as const
 export type Operator = typeof OPERATORS[number]
 export const DEFAULT_MAX_COLORS = 8
 export const MAX_COLORS = 16
 export const MAX_RESULT = 99 * 99
-export const NO_RESULTS_MESSAGE = 'These math settings produce no allowed answers. Increase the maximum result or change the zero/operator settings.'
+export const NO_RESULTS_MESSAGE = en.noResults
 
 export interface PuzzleSettings {
   readonly allowZero: boolean
@@ -20,13 +23,13 @@ export const DEFAULT_SETTINGS: PuzzleSettings = Object.freeze({
   multiMap: true, maxColors: DEFAULT_MAX_COLORS, maxResult: 99, allowZeroResults: false,
 })
 
-export function settingsErrors(settings: PuzzleSettings) {
+export function settingsErrors(settings: PuzzleSettings, messages: Messages = en) {
   return {
-    maxOperand: !Number.isInteger(settings.maxOperand) || settings.maxOperand < 2 || settings.maxOperand > 99 ? 'Enter a whole number from 2 to 99.' : null,
+    maxOperand: !Number.isInteger(settings.maxOperand) || settings.maxOperand < 2 || settings.maxOperand > 99 ? messages.wholeNumber(2, 99) : null,
     operators: settings.operators.length === 0 || settings.operators.some(operator => !OPERATORS.includes(operator)) ||
-      new Set(settings.operators).size !== settings.operators.length ? 'Choose at least one operator, without duplicates.' : null,
-    maxColors: !Number.isInteger(settings.maxColors) || settings.maxColors < 1 || settings.maxColors > MAX_COLORS ? 'Enter a whole number from 1 to 16.' : null,
-    maxResult: !Number.isInteger(settings.maxResult) || settings.maxResult < 0 || settings.maxResult > MAX_RESULT ? `Enter a whole number from 0 to ${MAX_RESULT}.` : null,
+      new Set(settings.operators).size !== settings.operators.length ? messages.invalidOperators : null,
+    maxColors: !Number.isInteger(settings.maxColors) || settings.maxColors < 1 || settings.maxColors > MAX_COLORS ? messages.wholeNumber(1, MAX_COLORS) : null,
+    maxResult: !Number.isInteger(settings.maxResult) || settings.maxResult < 0 || settings.maxResult > MAX_RESULT ? messages.wholeNumber(0, MAX_RESULT) : null,
   }
 }
 

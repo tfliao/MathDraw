@@ -1,11 +1,14 @@
+import { en } from '../i18n/en'
+import type { Messages } from '../i18n/en'
+
 export const MAX_COLUMNS = 64
 export const MAX_ROWS = MAX_COLUMNS
 export const MAX_CELLS = MAX_ROWS * MAX_COLUMNS
 
-export function dimensionError(value: string, axis: 'rows' | 'columns' = 'rows'): string | null {
+export function dimensionError(value: string, axis: 'rows' | 'columns' = 'rows', messages: Messages = en): string | null {
   const maximum = axis === 'rows' ? MAX_ROWS : MAX_COLUMNS
   if (!/^\d+$/.test(value) || Number(value) < 4 || Number(value) > maximum) {
-    return `Enter a whole number from 4 to ${maximum}.`
+    return messages.wholeNumber(4, maximum)
   }
   return null
 }
