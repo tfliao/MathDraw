@@ -170,7 +170,7 @@ test('all-background grids omit unused keys, explain the empty activity, and pri
   await page.getByLabel(t.choosePicture).setInputFiles(await imageFile(page, { transparent: true, width: 80, height: 80 }))
   await page.getByLabel(t.skipBackground, { exact: true }).check()
   await page.getByRole('button', { name: t.create, exact: true }).click()
-  await expect(page.locator('.app-shell .math-grid td[data-background]')).toHaveCount(576)
+  await expect(page.locator('.app-shell .math-grid td[data-background]')).toHaveCount(625)
   await expect(page.locator('.app-shell .color-key')).toHaveCount(0)
   await expect(page.locator('.app-shell .worksheet-instructions')).toHaveText(t.allBackground)
   await page.locator('#language').selectOption('zh-TW')
@@ -180,7 +180,7 @@ test('all-background grids omit unused keys, explain the empty activity, and pri
   const sheet = page.locator('.print-root .worksheet')
   const bounds = (await sheet.boundingBox())!
   expect(Number.isFinite(bounds.width) && Number.isFinite(bounds.height)).toBe(true)
-  expect(bounds.width).toBeCloseTo(180 * 96 / 25.4, 0)
+  expect(bounds.width).toBeCloseTo(187.5 * 96 / 25.4, 0)
   const bytes = await page.pdf({ format: 'A4', printBackground: false, path: testInfo.outputPath('all-background.pdf') })
   const task = getDocument({ data: new Uint8Array(bytes) })
   try {

@@ -11,7 +11,7 @@ test('supported formats process entirely locally', async ({ page }) => {
   for (const type of ['image/png', 'image/jpeg', 'image/webp']) {
     await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page, { type }))
     await page.getByRole('button', { name: 'Create puzzle' }).click()
-    await expect(page.getByRole('table', { name: '12 by 24 addition puzzle' })).toBeVisible()
+    await expect(page.getByRole('table', { name: '13 by 25 addition puzzle' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Print puzzle', exact: true })).toBeEnabled()
   }
   expect(external).toEqual([])
@@ -136,7 +136,7 @@ test('canvas failures are visible and generation can recover', async ({ page }) 
   await expect(page.getByText('Your browser could not create a drawing canvas.')).toBeVisible()
   await page.evaluate(() => document.dispatchEvent(new Event('restore-canvas')))
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  await expect(page.getByRole('table', { name: '12 by 24 addition puzzle' })).toBeVisible()
+  await expect(page.getByRole('table', { name: '13 by 25 addition puzzle' })).toBeVisible()
 })
 
 test('keyboard focus is visible and dimensions report invalid values', async ({ page }) => {

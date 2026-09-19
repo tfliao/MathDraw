@@ -56,7 +56,7 @@ result mapping, resizing, and color options are under **Advanced**.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | Manual grid | 16 columns, 20 rows | 4-64 in either direction; up to 4,096 cells |
-| Auto size | On | Matches image proportions within 24 by 24; minimum 4 per dimension |
+| Auto size | On | Matches image proportions within 25 columns by 28 rows; minimum 4 per dimension |
 | Skip near-white background | Off | Leaves edge-connected near-white cells blank; enclosed white details still have problems |
 | Allow zero operands | Off | When enabled, operands may start at 0 instead of 1 |
 | Maximum operand | 9 | Integer from 2 to 99 |
@@ -173,7 +173,11 @@ before/after palette reduction, cells changed by the palette, and cells actually
 whitened by background skipping. The counts describe the generated snapshot, not
 unapplied edits.
 
-Use **Download debugging bundle** to save `mathdraw-debug.json`. The self-contained
+On a local loopback host (`localhost`, `127.0.0.1`, or IPv6 `::1`), use
+**Download debugging bundle** to save `mathdraw-debug.json`. This control is hidden
+on public hosts and LAN addresses, including GitHub Pages; the processing summary
+remains available everywhere. Local development and local production previews
+both support the download. The self-contained
 bundle includes the original file bytes and metadata, decoded dimensions, selected
 algorithm and settings, effective color limit, pre-palette RGB cells, palette and
 assignments, the actual generated problems, and three PNG images at grid resolution:
@@ -187,7 +191,8 @@ See [support instructions](SUPPORT.md#reporting-a-problem) for inspecting a bund
 
 ## Printing
 
-Default arithmetic and grids up to 24 by 24 fit a portrait A4 or Letter page.
+Default arithmetic and grids up to 25 columns by 28 rows fit a portrait A4 page.
+Letter paper is shorter and is not guaranteed to fit the enlarged range.
 Larger grids, longer expressions, or larger keys can require larger paper.
 Follow the physical paper dimensions displayed above the print help:
 

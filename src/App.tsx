@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { autoDimensions, dimensionError, MAX_COLUMNS, MAX_ROWS } from './domain/dimensions'
+import { A4_COLUMNS, A4_ROWS, autoDimensions, dimensionError, MAX_COLUMNS, MAX_ROWS } from './domain/dimensions'
 import { worksheetLayout } from './domain/layout'
 import { createPuzzle } from './domain/puzzle'
 import type { Puzzle } from './domain/puzzle'
 import { processImage } from './image/process'
 import type { ImageDiagnostics } from './image/process'
-import { createDebugBundle, debugStats } from './image/debug'
+import { createDebugBundle, debugStats, isLocalHost } from './image/debug'
 import { useImageInput } from './image/useImageInput'
 import { Worksheet } from './components/Worksheet'
 import type { ViewMode } from './components/Worksheet'
@@ -50,6 +50,7 @@ function App() {
   const printReady = snapshot !== null && !stale && !busy && !generationError
   const printLayout = snapshot ? worksheetLayout(snapshot.puzzle) : null
   const stats = snapshot ? debugStats(snapshot.puzzle, snapshot.diagnostics) : null
+  const localDebug = isLocalHost(window.location.hostname)
 
   useEffect(() => () => { request.current++; generation.current?.abort() }, [])
 
@@ -92,7 +93,7 @@ function App() {
   }
 
   async function downloadDebug() {
-    if (!snapshot || !printReady || printing || exporting) return
+    if (!localDebug || !snapshot || !printReady || printing || exporting) return
     const id = request.current
     setExporting(true)
     setDebugError(null)
@@ -170,8 +171,8 @@ function App() {
               </div>
             </div>
             <p className="help" id="grid-help">{t.gridHelp}</p>
-            {!columnsError && gridColumns !== undefined && gridColumns > 24 && <p className="stale-notice" role="status">{t.widerGrid}</p>}
-            {!rowsError && gridRows !== undefined && gridRows > 24 && <p className="stale-notice" role="status">{t.tallerGrid}</p>}
+            {!columnsError && gridColumns !== undefined && gridColumns > A4_COLUMNS && <p className="stale-notice" role="status">{t.widerGrid}</p>}
+            {!rowsError && gridRows !== undefined && gridRows > A4_ROWS && <p className="stale-notice" role="status">{t.tallerGrid}</p>}
             <label className="toggle-field"><input type="checkbox" checked={settingsDraft.skipBackground} disabled={printing} aria-describedby="background-help" onChange={event => { changedInputs(); setSettingsDraft({ ...settingsDraft, skipBackground: event.target.checked }) }} />{t.skipBackground}</label>
             <p className="help" id="background-help">{t.backgroundHelp}</p>
             <AdvancedSettings value={settingsDraft} disabled={printing} onChange={value => { changedInputs(); setSettingsDraft(value) }} />
@@ -208,9 +209,11 @@ function App() {
                 <p className="help print-help">{printLayout?.needsLargerPaper ? t.selectPaper : t.onePage} {t.printHelp}</p>
                 {printing && <p className="print-status" role="status">{t.printing}</p>}
                 <p className="field-error" role="alert">{printError && t[printError.code]}</p>
-                <button disabled={!printReady || printing || exporting} aria-describedby="debug-help" onClick={() => void downloadDebug()}>{exporting ? t.preparingDebug : t.downloadDebug}</button>
-                <p className="help" id="debug-help">{t.debugHelp}</p>
-                <p className="field-error" role="alert">{debugError && t[debugError.code]}</p>
+                {localDebug && <>
+                  <button disabled={!printReady || printing || exporting} aria-describedby="debug-help" onClick={() => void downloadDebug()}>{exporting ? t.preparingDebug : t.downloadDebug}</button>
+                  <p className="help" id="debug-help">{t.debugHelp}</p>
+                  <p className="field-error" role="alert">{debugError && t[debugError.code]}</p>
+                </>}
               </div>
             ) : <div className="empty-state">
               <div className="pixel-flower" aria-hidden="true">

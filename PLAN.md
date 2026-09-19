@@ -1095,3 +1095,35 @@ MKS2013 legitimately introduces boundary shades, and merging is no longer automa
 Retain the original white-label, background, key-consistency, and PDF assertions.
 Production build, type checking, and lint pass. The only new runtime dependency
 is Pica (and its dependencies); no archive or testing library was added.
+
+## 22. Larger A4 range and local-only debugging downloads
+
+Continue the existing open PR #5 branch. The user confirmed expanding Auto size,
+warnings, and print-fit guidance together to 25 columns by 28 rows. Manual limits
+remain 4-64. Share the new bounds between auto fitting and advisory warnings;
+fit each image proportionally into the rectangular limit rather than using one
+maximum dimension for both axes.
+
+Before changing guidance, measured actual 25-by-28 PDFs in both languages:
+eight-color default keys fit one A4 page, but five-color keys (three answers in
+both key rows) used roughly 280-281 mm of content and overflowed the 277 mm
+printable height. Tighten heading/instruction/key/footer gaps and key cell padding,
+without changing cell size, font sizes, or 10 mm page margins. Align the layout
+estimate with these gaps and A4's real 190-by-277 mm content area; retain warnings
+for larger keys, extra background instructions, and long expressions. Do not claim
+that the new A4 range also fits the shorter Letter format.
+
+The user's follow-up restricts debugging downloads to local hosting. Gate the
+button, disclosure/error UI, and download handler by loopback hostname: localhost
+(including its terminal-dot form), IPv4 127/8, and IPv6 ::1. Do not treat LAN IPs,
+wildcard bind addresses, public domains, or localhost-lookalike names as local.
+This is runtime host behavior, so production previews on loopback retain the
+feature while GitHub Pages does not. Keep processing statistics visible everywhere.
+
+Independent local review found no significant issues. Passed 90 targeted unit
+tests and 82 browser cases across focused runs, including eight actual 25-by-28
+A4 PDFs (five/eight colors, both languages, both modes), warning boundaries,
+loopback/public-host controls, and existing Letter/large-paper flows. New A4 PDFs
+fit one page with unchanged 7.5 mm cells and 10 pt arithmetic. Build, type checking,
+and lint pass; the rebuilt production preview also confirms both the new automatic
+dimensions and local-only diagnostic control.

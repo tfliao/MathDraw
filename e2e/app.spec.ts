@@ -21,10 +21,10 @@ test('setup is labeled and generation requires a picture', async ({ page }) => {
 test('fresh defaults generate an auto-sized multi-map puzzle and both can be turned off', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
-  await expect(page.getByLabel('Columns', { exact: true })).toHaveValue('24')
-  await expect(page.getByLabel('Rows', { exact: true })).toHaveValue('12')
+  await expect(page.getByLabel('Columns', { exact: true })).toHaveValue('25')
+  await expect(page.getByLabel('Rows', { exact: true })).toHaveValue('13')
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  await expect(page.getByRole('table', { name: '12 by 24 addition puzzle' }).locator('td')).toHaveCount(288)
+  await expect(page.getByRole('table', { name: '13 by 25 addition puzzle' }).locator('td')).toHaveCount(325)
   const defaultResults = await page.locator('.app-shell .color-key td').evaluateAll(cells => cells.map(cell => cell.getAttribute('data-results')!.split(',')))
   expect(defaultResults.length).toBeGreaterThan(1)
   expect(defaultResults.length).toBeLessThanOrEqual(8)

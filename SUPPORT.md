@@ -42,8 +42,14 @@ Include enough information to reproduce it:
   scale, and whether the problem happens in a saved PDF or on a physical printer.
 - A small, non-sensitive sample image or screenshot when needed to reproduce it.
 - For image-quality issues, optionally include a debugging bundle from the
-  generated preview. It captures original bytes, settings, intermediate colors,
+  generated preview on a local loopback host. It captures original bytes, settings, intermediate colors,
   and the exact result without requiring a screenshot or a second generation.
+
+Debug downloading is intentionally unavailable on GitHub Pages and other non-local
+hosts, including LAN IP addresses. To capture a bundle, run the application locally
+using the README instructions, open its `localhost`/loopback URL, and regenerate
+the puzzle using the same image and settings. Processing statistics remain visible
+on the public site.
 
 The bundle is JSON, not an archive or executable. Its `source.dataUrl` holds the
 original file; `stages.sampled`, `stages.quantized`, and `stages.solution` hold PNG

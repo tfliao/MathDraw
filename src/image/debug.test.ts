@@ -4,7 +4,7 @@ import type { Rgb } from '../domain/color'
 import type { ColorGrid } from '../domain/palette'
 import { createPuzzle } from '../domain/puzzle'
 import { DEFAULT_SETTINGS } from '../domain/settings'
-import { debugStats } from './debug'
+import { debugStats, isLocalHost } from './debug'
 import type { ImageDiagnostics } from './process'
 
 const grid: ColorGrid = {
@@ -18,6 +18,15 @@ const grid: ColorGrid = {
     2, 2, 2, 2,
   ],
 }
+
+describe('local diagnostic availability', () => {
+  it.each(['localhost', 'LOCALHOST', 'localhost.', '127.0.0.1', '127.0.0.2', '127.255.255.255', '[::1]'])('allows loopback host %s', host => {
+    expect(isLocalHost(host)).toBe(true)
+  })
+  it.each(['tfliao.github.io', 'localhost.example.com', 'example.localhost', '192.168.1.2', '10.0.0.1', '0.0.0.0', '[::]', '127.0.0.256', '127.0.0.1.example.com', ''])('hides diagnostics on %s', host => {
+    expect(isLocalHost(host)).toBe(false)
+  })
+})
 
 function diagnosticsFor(value: ColorGrid, sampledColors: readonly Rgb[] = value.assignments.map(index => value.palette[index])): ImageDiagnostics {
   return {

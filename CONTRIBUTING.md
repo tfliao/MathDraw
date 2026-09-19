@@ -162,6 +162,13 @@ separate text items or equivalent radicals.
   File, processing diagnostics, frozen puzzle/settings, and distinct before-palette,
   after-palette, and visible-solution stages. Export only on explicit request,
   disclose embedded original metadata, and revoke download object URLs.
+- Gate both debug-download UI and its handler on the current hostname being
+  loopback, not on development build mode. Public and LAN hosts must not expose
+  the download; local production previews must retain it.
+- Auto sizing and A4 advisories share the 25-column/28-row bounds. Preserve
+  7.5 mm default cells and 10 pt arithmetic; print estimates use the actual
+  190 by 277 mm A4 content area with 10 mm margins. Larger keys/problems can
+  still require larger paper; Letter is not equivalent to A4 at these bounds.
 - Respect current grid/image limits; release old bitmaps and object URLs, and
   discard stale asynchronous work.
 - Reuse `Worksheet` for screen and print. Keep readable cell/font sizes, and

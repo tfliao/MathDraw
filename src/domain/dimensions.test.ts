@@ -24,12 +24,13 @@ describe('grid dimensions', () => {
     expect(dimensionError('24.5', 'columns')).toBeTruthy()
   })
   it.each([
-    [200, 100, 12, 24],
-    [100, 200, 24, 12],
-    [100, 100, 24, 24],
-    [10000, 1, 4, 24],
-    [1, 10000, 24, 4],
-    [400, 300, 18, 24],
+    [200, 100, 13, 25],
+    [100, 200, 28, 14],
+    [100, 100, 25, 25],
+    [10000, 1, 4, 25],
+    [1, 10000, 28, 4],
+    [400, 300, 19, 25],
+    [250, 280, 28, 25],
   ])('auto fits %s x %s', (width, height, rows, columns) => {
     expect(autoDimensions(width, height)).toEqual({ rows, columns })
   })
