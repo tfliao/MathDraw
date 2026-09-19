@@ -1,6 +1,6 @@
 # MathDraw implementation plan
 
-Status: V1 and V2 complete. V3 height/result controls and README in progress.
+Status: V1, V2, and V3 complete. All implementation iterations independently reviewed and committed.
 
 The V2 section below supersedes V1 limits where explicitly noted. V1 sections
 remain as the historical implementation and decision record.
@@ -446,18 +446,20 @@ images in the application.
 
 1. Choose a PNG, JPEG, or WebP picture. Simple, high-contrast pictures work best.
 2. Enable "Auto size from picture" for an image-proportioned grid within 24 by 24,
-   or choose 4-64 columns and 4-24 rows manually.
+   or choose 4-64 columns and 4-64 rows manually.
 3. Optionally expand "Advanced" to set zero operands, maximum operand (2-99),
-   allowed operators, multiple results per color, and maximum colors (1-16).
+   allowed operators, maximum result (0-9801), zero results, multiple results per
+   color, and maximum colors (1-16).
    Defaults remain addition, nonzero operands through 9, one result per color,
-   and at most 8 colors. Then select "Create puzzle."
+   at most 8 colors, maximum result 99, and zero results disabled.
+   Then select "Create puzzle."
 4. Use "Puzzle" or "Solution" to inspect the generated activity. Changing setup
    fields does not alter the existing puzzle; generate again to apply changes.
 5. Select "Print puzzle" for the child's uncolored worksheet, or "Print answer
    key" for the adult's colored solution. Printing never uses the screen's view
    selection to guess which sheet you want.
 6. For default arithmetic and up to 24 columns, use portrait A4 or Letter.
-   For wider grids, longer problems, or larger keys, follow the displayed paper
+   For wider/taller grids, longer problems, or larger keys, follow the displayed paper
    dimensions and select sufficiently large paper/orientation. Always use 100%
    scale, color printing, and disable browser headers/footers. "Save as PDF"
    works through the same dialog. Cells are not automatically shrunk to A4;
@@ -470,8 +472,8 @@ are saved across a page refresh; save a PDF before leaving if needed.
 
 Multiple results per color uses up to three answers, listed vertically beside
 one swatch. An answer never refers to two colors. Subtraction never produces
-negative answers, but equal operands may produce zero even with zero operands
-disabled. Requested color counts are maximums: similar shades, image content,
+negative answers; equal operands may produce zero only with "Allow zero results"
+enabled. This is independent of zero operands. Requested color counts are maximums: similar shades, image content,
 and the available arithmetic results may reduce the actual count.
 
 ### Development commands
@@ -691,7 +693,7 @@ own meaningful commit, following the same source-maintenance workflow as V1.
 - [x] Record implementation approach before coding.
 - [x] Align height and width limits, reviewed and committed.
 - [x] Result controls and multiplication sign, reviewed and committed.
-- [ ] README, integrated validation, and final review committed.
+- [x] README, integrated validation, and final review committed.
 
 The existing user-owned `OIP.webp` remains untouched and untracked.
 
@@ -719,3 +721,20 @@ for controls, expressions, and print instructions. Exact extracted PDF expressio
 sequences verify the multiplication glyph and absence of asterisks. Independent
 sub-agent review found no significant issues. Passed 72 targeted domain tests,
 10 browser cases, production build, and lint.
+
+### V3 README and current documentation
+
+Added the requested `README.md` with installation, portable-runtime notes,
+development/run/build commands, Playwright setup and port guidance, source
+structure, contributor invariants, current options/defaults, and print/privacy
+limitations. Updated the current usage section here to match V3; earlier V1/V2
+decision sections remain historical records, superseded by the V3 section.
+
+The final integrated run passed 122 Vitest tests, 51 Playwright browser cases,
+strict type checking, lint, and the production build. Browser coverage now
+includes 26 PDF outputs: the default A4/Letter combinations, wide/advanced
+worksheets, and full 64-by-64 grids. Inspected the rebuilt production controls and
+a rasterized multiplication worksheet to confirm U+00D7 is rendered correctly.
+The existing preview at `http://127.0.0.1:5173` serves the completed application.
+The final documentation-review sub-agent found no significant issues. All V3
+iterations were reviewed before commit; the user's `OIP.webp` remains untouched.
