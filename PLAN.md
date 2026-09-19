@@ -1,6 +1,6 @@
 # MathDraw implementation plan
 
-Status: V1 and V2 complete. All implementation iterations independently reviewed and committed.
+Status: V1 and V2 complete. V3 height/result controls and README in progress.
 
 The V2 section below supersedes V1 limits where explicitly noted. V1 sections
 remain as the historical implementation and decision record.
@@ -645,3 +645,52 @@ application. The user-owned `OIP.webp` remains unmodified and untracked.
 The final independent sub-agent review found no significant issues in this
 completion increment. Each V2 implementation iteration was reviewed before its
 own meaningful commit, following the same source-maintenance workflow as V1.
+
+## 13. V3: taller grids, result controls, and project README
+
+### Requirements and implementation decisions
+
+- Align manual rows with columns: both accept 4-64, with a maximum of 4,096
+  cells. Auto size remains the previously agreed A4-oriented 24-by-24 maximum.
+  Warn for dimensions above 24 and retain readable physical cells and larger-
+  paper advice, now including tall worksheets.
+- Display the multiplication sign (Unicode U+00D7) in puzzle expressions and
+  operator labels. Keep `*` as the internal operator identifier so computation
+  is unchanged. Centralize operator display formatting, shared by screen,
+  print, and expression-length layout decisions.
+- Add Advanced "Maximum result", default 99, and "Allow zero results", default
+  false. Zero operands and zero results are independent constraints.
+- Decision: allow an integer maximum result from 0 to 9801, the natural maximum
+  attainable with the existing 99-by-99 operand limit. A maximum of zero is
+  useful for an explicitly enabled zero-result-only activity.
+- Filter legal expressions before calculating result capacity, assigning
+  colors, or multi-map results. Continue to prohibit negative results. When no
+  legal result exists, explain the conflicting settings and disable generation;
+  never pass a zero-color palette limit into image processing.
+- Changing either result option marks the old snapshot stale and disables
+  printing until regeneration. Freeze both options with generated snapshots.
+- Add the requested `README.md` covering requirements, installation, local run,
+  production build/preview, test commands, architecture, developer workflow,
+  current options, print limitations, and local-image privacy.
+
+### Iterations and validation
+
+1. Raise the row/domain/image capacity, wire tall-grid warnings, and cover
+   64-by-64 generation plus tall/custom-paper output. Review and commit.
+2. Add result constraints and multiplication display across domain/UI/print.
+   Update tests that intentionally need zero results or results above 99 to
+   opt into those settings; retain default behavior coverage. Exercise empty
+   result sets, zero-only puzzles, independent operand/result zeros, palette
+   capacity, multi-map, invalid limits, and rendered/PDF multiplication symbols.
+   Review and commit.
+3. Write README and update current usage instructions. Run the complete suite,
+   inspect representative output, perform a final review, and commit.
+
+### V3 progress
+
+- [x] Record implementation approach before coding.
+- [ ] Align height and width limits, reviewed and committed.
+- [ ] Result controls and multiplication sign, reviewed and committed.
+- [ ] README, integrated validation, and final review committed.
+
+The existing user-owned `OIP.webp` remains untouched and untracked.
