@@ -4,6 +4,7 @@ import { imageFile } from './fixtures'
 
 test('large advanced worksheets retain expressions, grouped keys and readable cells in PDFs', async ({ page }, testInfo) => {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   await page.evaluate(() => {
     let seed = 82541
     Math.random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296 }

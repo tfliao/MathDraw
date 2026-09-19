@@ -3,6 +3,7 @@ import { imageFile, rotateJpegClockwise } from './fixtures'
 
 test('fits the entire image, keeps white margins and limits the palette', async ({ page }) => {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
   await page.getByLabel('Rows', { exact: true }).fill('8')
   await page.getByLabel('Columns', { exact: true }).fill('8')
@@ -41,6 +42,7 @@ test('reports corrupt input and recovers with a valid picture', async ({ page })
 
 test('respects JPEG EXIF orientation before fitting and sampling', async ({ page }) => {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   const image = rotateJpegClockwise(await imageFile(page, { type: 'image/jpeg' }))
   await page.getByLabel('1. Choose a picture').setInputFiles(image)
   const preview = page.getByRole('img', { name: 'Original picture: picture.jpg' })

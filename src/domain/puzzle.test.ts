@@ -23,7 +23,7 @@ describe('addition puzzles', () => {
     expect(pairs).toHaveLength(expected.length)
   })
   it('uses one globally unique sum per color and valid problems in all cells', () => {
-    const puzzle = createPuzzle(grid, DEFAULT_SETTINGS, () => 0.4)
+    const puzzle = createPuzzle(grid, { ...DEFAULT_SETTINGS, multiMap: false }, () => 0.4)
     expect(puzzle.cells).toHaveLength(16)
     expect(new Set(puzzle.key.flatMap(entry => entry.results)).size).toBe(8)
     expect(puzzle.key.map(entry => entry.results[0])).toEqual(puzzle.key.map(entry => entry.results[0]).sort((a, b) => a - b))
@@ -33,6 +33,12 @@ describe('addition puzzles', () => {
       expect(entry.color).toEqual(grid.palette[cell.colorIndex])
     })
     expect(puzzle.key.find(entry => entry.hex === '#ffffff')?.label).toBe('Leave white')
+  })
+  it('uses multiple results per color by default when enough cells and answers exist', () => {
+    const puzzle = createPuzzle(grid)
+    expect(puzzle.settings.multiMap).toBe(true)
+    expect(puzzle.key.every(entry => entry.results.length === 2)).toBe(true)
+    expect(new Set(puzzle.cells.map(answer))).toEqual(new Set(puzzle.key.flatMap(entry => entry.results)))
   })
   it('deep freezes the snapshot and copies caller-owned arrays', () => {
     const puzzle = createPuzzle(grid, DEFAULT_SETTINGS, () => 0)

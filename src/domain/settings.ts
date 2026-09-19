@@ -17,7 +17,7 @@ export interface PuzzleSettings {
 
 export const DEFAULT_SETTINGS: PuzzleSettings = Object.freeze({
   allowZero: false, maxOperand: 9, operators: Object.freeze<Operator[]>(['+']),
-  multiMap: false, maxColors: DEFAULT_MAX_COLORS, maxResult: 99, allowZeroResults: false,
+  multiMap: true, maxColors: DEFAULT_MAX_COLORS, maxResult: 99, allowZeroResults: false,
 })
 
 export function settingsErrors(settings: PuzzleSettings) {

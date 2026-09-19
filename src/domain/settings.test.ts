@@ -4,7 +4,7 @@ import type { Operator } from './settings'
 
 describe('difficulty settings', () => {
   it('retains default addition with the new result constraints', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: false, maxColors: 8, maxResult: 99, allowZeroResults: false })
+    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false })
     expect([...buildProblemPool(DEFAULT_SETTINGS).keys()]).toEqual(Array.from({ length: 17 }, (_, index) => index + 2))
   })
   for (let mask = 1; mask < 8; mask++) {

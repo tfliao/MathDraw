@@ -42,7 +42,7 @@ $env:PATH = "$nodeDirectory;$env:PATH"
 
 1. Choose a PNG, JPEG, or WebP image, up to 10 MiB and 40 million decoded pixels.
    Simple, high-contrast artwork works best.
-2. Enable **Auto size from picture**, or set rows and columns manually.
+2. Keep **Auto size from picture** enabled, or turn it off to set rows and columns manually.
 3. Optionally expand **Advanced**, then select **Create puzzle**.
 4. Switch between **Puzzle** and **Solution** to preview the activity.
 5. Use **Print puzzle** for the uncolored activity or **Print answer key** for
@@ -57,13 +57,13 @@ save a PDF if you want to keep a puzzle.
 | Option | Default | Behavior |
 | --- | --- | --- |
 | Manual grid | 16 columns, 20 rows | 4-64 in either direction; up to 4,096 cells |
-| Auto size | Off | Matches image proportions within 24 by 24; minimum 4 per dimension |
+| Auto size | On | Matches image proportions within 24 by 24; minimum 4 per dimension |
 | Allow zero operands | Off | When enabled, operands may start at 0 instead of 1 |
 | Maximum operand | 9 | Integer from 2 to 99 |
 | Operators | Addition | Any nonempty set of addition, subtraction, and multiplication |
 | Maximum result | 99 | Integer from 0 to 9801; inclusive upper bound for every answer |
 | Allow zero results | Off | Independently permits answer 0; negative answers are never allowed |
-| Multiple results per color | Off | Up to 3 answers per color; an answer still identifies exactly one color |
+| Multiple results per color | On | Up to 3 answers per color; an answer still identifies exactly one color |
 | Maximum colors | 8 | Integer from 1 to 16; actual count may be lower |
 
 Multiplication is displayed with the multiplication sign, not an asterisk.

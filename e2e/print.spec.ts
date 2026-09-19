@@ -5,6 +5,7 @@ import type { Page } from '@playwright/test'
 
 async function setup(page: Page, rows = 20, columns = 16) {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   await page.evaluate(() => {
     window.print = () => { document.documentElement.dataset.printCalled = 'yes' }
   })

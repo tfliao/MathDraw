@@ -17,7 +17,7 @@ import './print.css'
 function App() {
   const [rows, setRows] = useState('20')
   const [columns, setColumns] = useState('16')
-  const [autoSize, setAutoSize] = useState(false)
+  const [autoSize, setAutoSize] = useState(true)
   const [settingsDraft, setSettingsDraft] = useState(DEFAULT_DRAFT)
   const settings = useMemo(() => parseSettings(settingsDraft), [settingsDraft])
   const invalidSettings = Object.values(settingsErrors(settings)).some(Boolean)

@@ -23,6 +23,7 @@ test('auto sizing follows image proportions and preserves manual settings', asyn
 
 test('auto size can bypass invalid manual values but restores their errors', async ({ page }) => {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   await page.getByLabel('Rows', { exact: true }).fill('')
   await page.getByLabel('Auto size from picture').check()
   await expect(page.getByRole('button', { name: 'Create puzzle' })).toBeDisabled()
@@ -35,6 +36,7 @@ test('auto size can bypass invalid manual values but restores their errors', asy
 
 test('64 columns retain readable cells on larger paper in both print modes', async ({ page }, testInfo) => {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   await page.evaluate(() => { window.print = () => { document.documentElement.dataset.printCalled = 'yes' } })
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
   await page.getByLabel('Columns', { exact: true }).fill('65')
@@ -73,6 +75,7 @@ test('64 columns retain readable cells on larger paper in both print modes', asy
 
 test('64 rows and columns generate and print without shrinking or losing cells', async ({ page }, testInfo) => {
   await page.goto('/')
+  await page.getByLabel('Auto size from picture').uncheck()
   await page.evaluate(() => { window.print = () => { document.documentElement.dataset.printCalled = 'yes' } })
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page, { width: 96, height: 96, palette: true }))
   await page.getByLabel('Rows', { exact: true }).fill('65')

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { imageFile } from './fixtures'
 
-test('advanced settings are collapsed and preserve original defaults', async ({ page }) => {
+test('advanced settings are collapsed and use the configured defaults', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByLabel('Maximum operand', { exact: true })).toBeHidden()
   await page.getByText('Advanced', { exact: true }).click()
@@ -10,7 +10,7 @@ test('advanced settings are collapsed and preserve original defaults', async ({ 
   await expect(page.getByLabel('Addition (+)', { exact: true })).toBeChecked()
   await expect(page.getByLabel('Subtraction (-)', { exact: true })).not.toBeChecked()
   await expect(page.getByLabel('Multiplication (\u00d7)', { exact: true })).not.toBeChecked()
-  await expect(page.getByLabel('Multiple results per color')).not.toBeChecked()
+  await expect(page.getByLabel('Multiple results per color')).toBeChecked()
   await expect(page.getByLabel('Maximum colors', { exact: true })).toHaveValue('8')
   await expect(page.getByLabel('Maximum result', { exact: true })).toHaveValue('99')
   await expect(page.getByLabel('Allow zero results')).not.toBeChecked()
@@ -55,7 +55,7 @@ test('subtraction caps colors by answer capacity and allows zero results without
   await page.getByLabel('Maximum colors', { exact: true }).fill('16')
   await expect(page.getByText('These math settings provide 2 distinct answers', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  await expect(page.getByRole('table', { name: '20 by 16 math puzzle' })).toBeVisible()
+  await expect(page.getByRole('table', { name: '12 by 24 math puzzle' })).toBeVisible()
   await expect(page.locator('.app-shell .color-key td')).toHaveCount(2)
   const expressions = await page.locator('.app-shell .math-grid td').allTextContents()
   expect(expressions.every(text => /^[12]-[12]$/.test(text))).toBe(true)
@@ -72,7 +72,7 @@ test('multiplication multi-map uses grouped results and survives view switching'
   await page.getByLabel('Maximum operand', { exact: true }).fill('99')
   await page.getByLabel('Multiple results per color').check()
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  await expect(page.getByRole('table', { name: '20 by 16 math puzzle' })).toBeVisible()
+  await expect(page.getByRole('table', { name: '12 by 24 math puzzle' })).toBeVisible()
   const problems = await page.locator('.app-shell .math-grid td').allTextContents()
   const entries = await page.locator('.app-shell .color-key td').evaluateAll(cells => cells.map(cell => ({
     results: cell.getAttribute('data-results')!.split(',').map(Number), color: cell.getAttribute('data-color'),
@@ -121,7 +121,7 @@ test('all advanced changes invalidate old printouts and the expanded panel fits 
   const edits = [
     () => page.getByLabel('Maximum operand', { exact: true }).fill('10'),
     () => page.getByLabel('Subtraction (-)', { exact: true }).check(),
-    () => page.getByLabel('Multiple results per color').check(),
+    () => page.getByLabel('Multiple results per color').uncheck(),
     () => page.getByLabel('Maximum colors', { exact: true }).fill('3'),
     () => page.getByLabel('Allow zero operands').check(),
     () => page.getByLabel('Maximum result', { exact: true }).fill('5'),

@@ -445,13 +445,13 @@ images in the application.
 ### Create a paper activity
 
 1. Choose a PNG, JPEG, or WebP picture. Simple, high-contrast pictures work best.
-2. Enable "Auto size from picture" for an image-proportioned grid within 24 by 24,
-   or choose 4-64 columns and 4-64 rows manually.
+2. Keep "Auto size from picture" enabled for an image-proportioned grid within
+   24 by 24, or turn it off to choose 4-64 columns and 4-64 rows manually.
 3. Optionally expand "Advanced" to set zero operands, maximum operand (2-99),
    allowed operators, maximum result (0-9801), zero results, multiple results per
    color, and maximum colors (1-16).
-   Defaults remain addition, nonzero operands through 9, one result per color,
-   at most 8 colors, maximum result 99, and zero results disabled.
+   Defaults are auto sizing, addition, nonzero operands through 9, up to three
+   results per color, at most 8 colors, maximum result 99, and zero results disabled.
    Then select "Create puzzle."
 4. Use "Puzzle" or "Solution" to inspect the generated activity. Changing setup
    fields does not alter the existing puzzle; generate again to apply changes.
@@ -738,3 +738,21 @@ a rasterized multiplication worksheet to confirm U+00D7 is rendered correctly.
 The existing preview at `http://127.0.0.1:5173` serves the completed application.
 The final documentation-review sub-agent found no significant issues. All V3
 iterations were reviewed before commit; the user's `OIP.webp` remains untouched.
+
+## 14. Enabled defaults
+
+Requested change: enable "Auto size from picture" and "Multiple results per color"
+on first load. These defaults supersede the historical V2 choices above.
+
+Keep both controls reversible: disabling auto size restores the retained manual
+dimensions (initially 16 columns by 20 rows), and disabling multi-map uses one
+answer per color. No sizing limits, arithmetic constraints, or mapping rules
+change. Update the current usage guide and retain explicit manual/single-map
+coverage alongside a first-load generation and opt-out browser regression.
+
+The independent code-review sub-agent found no significant issues. Passed 73
+targeted domain/draft tests, production build, and lint. All 49 affected browser
+cases passed across runs, including existing PDF regressions: one initial
+pre-upload page-load timeout passed when the four image cases were rerun. The
+strengthened two-case first-load/opt-out coverage also passed on its final run.
+The local production preview serves the rebuilt application.

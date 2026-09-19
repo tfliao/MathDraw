@@ -8,11 +8,11 @@ describe('readable worksheet sizing', () => {
   it('preserves the default A4 layout', () => {
     const puzzle = createPuzzle({ rows: 24, columns: 24, palette: [[0, 0, 0]], assignments: Array(576).fill(0) })
     expect(worksheetLayout(puzzle)).toEqual({
-      cellMm: 7.5, widthMm: 180, heightMm: 230, paperWidthMm: 200, paperHeightMm: 250, needsLargerPaper: false,
+      cellMm: 7.5, widthMm: 180, heightMm: 237, paperWidthMm: 200, paperHeightMm: 257, needsLargerPaper: false,
     })
   })
   it('expands cells for long problems even when there are only four columns', () => {
-    const puzzle = createPuzzle({ rows: 24, columns: 4, palette: [[0, 0, 0]], assignments: Array(96).fill(0) }, { ...DEFAULT_SETTINGS, maxOperand: 99, maxResult: 9801, operators: ['*'] }, () => 1 - Number.EPSILON)
+    const puzzle = createPuzzle({ rows: 24, columns: 4, palette: [[0, 0, 0]], assignments: Array(96).fill(0) }, { ...DEFAULT_SETTINGS, multiMap: false, maxOperand: 99, maxResult: 9801, operators: ['*'] }, () => 1 - Number.EPSILON)
     const layout = worksheetLayout(puzzle)
     expect(puzzle.cells[0]).toMatchObject({ a: 99, b: 99, operator: '*' })
     expect(layout.cellMm).toBe(12)
