@@ -123,8 +123,9 @@ MathDraw is already a static web app: no conversion or backend hosting is needed
 GitHub Actions can build it and publish `dist` to GitHub Pages. Image processing
 and printing continue to work in the visitor's browser.
 
-The following is a **setup guide**, not an already-configured deployment. No
-Pages workflow is currently included in the repository.
+The repository includes [the Pages workflow](.github/workflows/deploy-pages.yml).
+You still need to enable GitHub Pages in the repository settings and push the
+workflow before deployment can run.
 
 ### 1. Publish the source repository
 
@@ -142,7 +143,7 @@ git push -u origin master
 ```
 
 The examples use `master`, the branch used by this project. If you use `main`
-instead, change both the push command and the workflow branch below. If an
+instead, change both the push command and the workflow's `push.branches`. If an
 `origin` already exists, inspect it with `git remote -v` rather than adding it
 again. Publish only intended source commits, not personal images or secrets.
 
@@ -157,73 +158,20 @@ For a repository named `MathDraw`, the project-site URL will normally be:
 https://YOUR-USERNAME.github.io/MathDraw/
 ```
 
-### 3. Add the deployment workflow
+### 3. Configure and push the included workflow
 
-Create `.github\workflows\deploy-pages.yml` with the following content, then commit
-and push that file. The workflow runs on Ubuntu, so its commands use `npm`, not
-`npm.cmd`.
+The single file `.github\workflows\deploy-pages.yml` contains both the build and
+deployment jobs. It runs on pushes to `master` and supports manual runs. No
+additional YAML files are required for Pages.
 
-```yaml
-name: Deploy MathDraw to GitHub Pages
+The build job uses Node.js 24, installs locked dependencies, runs unit tests and
+lint, type-checks and builds the app, then uploads `dist`. The dependent deploy
+job publishes the artifact using the `github-pages` environment. Only the deploy
+job receives `pages: write` and `id-token: write` permissions.
 
-on:
-  push:
-    branches: [master]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: read
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
-env:
-  BASE_PATH: /MathDraw/
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v6
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Install dependencies
-        run: npm ci
-      - name: Run unit tests
-        run: npm test
-      - name: Lint
-        run: npm run lint
-      - name: Build for the repository path
-        run: npm run build -- --base="$BASE_PATH"
-      - name: Upload built site
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy site
-        id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-Set `BASE_PATH` to your actual hosting path, including both slashes:
+The workflow runs on Ubuntu, so its commands use `npm`, not `npm.cmd`. Its
+`BASE_PATH` is already `/MathDraw/`, matching this repository's project-site URL.
+For other hosting locations, edit that workflow value, including both slashes:
 
 | Hosting location | `BASE_PATH` |
 | --- | --- |
@@ -237,9 +185,16 @@ development path. Do not publish the source `index.html` directly: publish the
 generated `dist` artifact. No `gh-pages` branch, personal access token, or
 committed `dist` directory is required for this workflow.
 
-The build command includes type checking. This deployment example runs unit
+The build command includes type checking. This workflow runs unit
 tests and lint but not Playwright; run the browser/PDF suite separately as
 described under Development.
+
+After enabling Pages and reviewing any branch/base-path adjustments, commit any
+adjustments and push:
+
+```powershell
+git push origin master
+```
 
 ### 4. Open the deployed site
 
