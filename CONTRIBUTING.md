@@ -144,15 +144,24 @@ separate text items or equivalent radicals.
   not reroll problems; edited generation controls must mark the snapshot stale.
 - Internal multiplication uses `*`. Use `operatorSymbol` / `problemText` for
   display so screen and print use the same multiplication sign.
-- Preserve the final palette's CIE76 distance of at least 25 and reserved-white
-  behavior, even when increasing the requested color count.
-- The foreground-sampling experiment excludes near-white samples, then chooses
+- Preserve sampled RGB values when they fit effective capacity and optional
+  similar-color merging is off (the default). Enforce CIE76 distance of at least
+  25 only when merging is enabled; preserve reserved-white behavior during reduction.
+- The optional foreground sampler excludes near-white samples, then chooses
   the most frequent actual sample from the largest 16-level RGB bucket per cell.
   Use white if no foreground remains. Share the near-white predicate with background
   detection, retain deterministic ties, and test the image-to-palette pipeline.
-- For images matching grid dimensions exactly, bypass foreground voting and copy
-  white-composited source pixels before palette reduction. Never smooth artificial
-  enlargement into the sampling canvas; retain smoothing for actual shrinking.
+- For images matching grid dimensions exactly, copy white-composited source pixels
+  before palette reduction regardless of selected algorithm. Pica MKS2013 defaults
+  to direct-grid resizing, not the foreground sampler. Nearest and browser modes
+  also target the grid; only foreground mode uses a 16x sampling canvas.
+- Keep a single Pica instance with its default JS/WASM/worker features, without
+  createImageBitmap resizing. Own a source bitmap clone across async work, cancel
+  obsolete jobs, and ignore both stale results and stale failures in the UI.
+- Debug exports belong to one successful, current snapshot. Retain its original
+  File, processing diagnostics, frozen puzzle/settings, and distinct before-palette,
+  after-palette, and visible-solution stages. Export only on explicit request,
+  disclose embedded original metadata, and revoke download object URLs.
 - Respect current grid/image limits; release old bitmaps and object URLs, and
   discard stale asynchronous work.
 - Reuse `Worksheet` for screen and print. Keep readable cell/font sizes, and

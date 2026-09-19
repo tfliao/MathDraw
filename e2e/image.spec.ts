@@ -8,6 +8,8 @@ test('fits the entire image, keeps white margins and limits the palette', async 
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
   await page.getByLabel('Rows', { exact: true }).fill('8')
   await page.getByLabel('Columns', { exact: true }).fill('8')
+  await page.getByText('Advanced', { exact: true }).click()
+  await page.getByLabel('Maximum colors', { exact: true }).fill('3')
   await page.getByRole('button', { name: 'Create puzzle' }).click()
   await page.getByRole('button', { name: 'Solution', exact: true }).click()
   const grid = page.getByRole('img', { name: 'Pixel picture with 8 rows, 8 columns and 3 colors' })
@@ -66,6 +68,8 @@ test('respects JPEG EXIF orientation before fitting and sampling', async ({ page
 
 test('uses dominant foreground shades while ignoring near-white samples throughout the puzzle pipeline', async ({ page }) => {
   await page.goto('/')
+  await page.getByText('Advanced', { exact: true }).click()
+  await page.getByLabel('Image resizing algorithm').selectOption('foreground')
   const base64 = await page.evaluate(() => {
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = 64

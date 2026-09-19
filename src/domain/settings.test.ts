@@ -1,11 +1,39 @@
 import { describe, expect, it } from 'vitest'
-import { answer, assertSettings, buildProblemPool, DEFAULT_SETTINGS, MAX_RESULT, OPERATORS, problemText, settingsErrors } from './settings'
-import type { Operator } from './settings'
+import { answer, assertSettings, buildProblemPool, DEFAULT_SETTINGS, isResizeAlgorithm, MAX_RESULT, OPERATORS, problemText, RESIZE_ALGORITHMS, settingsErrors } from './settings'
+import type { Operator, ResizeAlgorithm } from './settings'
+import { en } from '../i18n/en'
+import { zhTW } from '../i18n/zh-TW'
 
 describe('difficulty settings', () => {
   it('retains default addition with the new result constraints', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false, maxResultsPerColor: 3, skipBackground: false })
+    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false, maxResultsPerColor: 3, skipBackground: false, resizeAlgorithm: 'pica', mergeSimilarColors: false })
     expect([...buildProblemPool(DEFAULT_SETTINGS).keys()]).toEqual(Array.from({ length: 17 }, (_, index) => index + 2))
+  })
+
+  describe('image settings', () => {
+    it('defaults to Pica and preserves colors without optional merging', () => {
+      expect(DEFAULT_SETTINGS.resizeAlgorithm).toBe('pica')
+      expect(DEFAULT_SETTINGS.mergeSimilarColors).toBe(false)
+      expect(RESIZE_ALGORITHMS).toEqual(['pica', 'nearest', 'browser', 'foreground'])
+    })
+
+    it.each(RESIZE_ALGORITHMS)('accepts the %s algorithm without affecting math answers', resizeAlgorithm => {
+      expect(isResizeAlgorithm(resizeAlgorithm)).toBe(true)
+      for (const mergeSimilarColors of [false, true]) {
+        const settings = { ...DEFAULT_SETTINGS, resizeAlgorithm, mergeSimilarColors }
+        expect(settingsErrors(settings).resizeAlgorithm).toBeNull()
+        expect(() => assertSettings(settings)).not.toThrow()
+        expect(buildProblemPool(settings)).toEqual(buildProblemPool(DEFAULT_SETTINGS))
+      }
+    })
+
+    it.each(['', 'Pica', 'bilinear', null, undefined, 0, false, {}, ['pica']])('rejects unsupported algorithms without coercion: %j', value => {
+      expect(isResizeAlgorithm(value)).toBe(false)
+      const settings = { ...DEFAULT_SETTINGS, resizeAlgorithm: value as ResizeAlgorithm }
+      expect(settingsErrors(settings).resizeAlgorithm).toBe(en.invalidResizeAlgorithm)
+      expect(settingsErrors(settings, zhTW).resizeAlgorithm).toBe(zhTW.invalidResizeAlgorithm)
+      expect(() => assertSettings(settings)).toThrow(en.invalidResizeAlgorithm)
+    })
   })
   for (let mask = 1; mask < 8; mask++) {
     const operators = OPERATORS.filter((_, index) => mask & (1 << index))

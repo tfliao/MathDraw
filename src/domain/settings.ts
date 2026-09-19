@@ -3,6 +3,13 @@ import type { Messages } from '../i18n/en'
 
 export const OPERATORS = ['+', '-', '*'] as const
 export type Operator = typeof OPERATORS[number]
+export const RESIZE_ALGORITHMS = ['pica', 'nearest', 'browser', 'foreground'] as const
+export type ResizeAlgorithm = typeof RESIZE_ALGORITHMS[number]
+
+export function isResizeAlgorithm(value: unknown): value is ResizeAlgorithm {
+  return RESIZE_ALGORITHMS.some(algorithm => algorithm === value)
+}
+
 export const DEFAULT_MAX_COLORS = 8
 export const MAX_COLORS = 16
 export const MAX_RESULT = 99 * 99
@@ -18,12 +25,15 @@ export interface PuzzleSettings {
   readonly maxColors: number
   readonly maxResult: number
   readonly allowZeroResults: boolean
+  readonly resizeAlgorithm: ResizeAlgorithm
+  readonly mergeSimilarColors: boolean
 }
 
 export const DEFAULT_SETTINGS: PuzzleSettings = Object.freeze({
   allowZero: false, maxOperand: 9, operators: Object.freeze<Operator[]>(['+']),
   multiMap: true, maxColors: DEFAULT_MAX_COLORS, maxResult: 99, allowZeroResults: false,
   maxResultsPerColor: 3, skipBackground: false,
+  resizeAlgorithm: 'pica', mergeSimilarColors: false,
 })
 
 export function settingsErrors(settings: PuzzleSettings, messages: Messages = en) {
@@ -34,6 +44,7 @@ export function settingsErrors(settings: PuzzleSettings, messages: Messages = en
     maxColors: !Number.isInteger(settings.maxColors) || settings.maxColors < 1 || settings.maxColors > MAX_COLORS ? messages.wholeNumber(1, MAX_COLORS) : null,
     maxResult: !Number.isInteger(settings.maxResult) || settings.maxResult < 0 || settings.maxResult > MAX_RESULT ? messages.wholeNumber(0, MAX_RESULT) : null,
     maxResultsPerColor: !Number.isInteger(settings.maxResultsPerColor) || settings.maxResultsPerColor < 1 || settings.maxResultsPerColor > 8 ? messages.wholeNumber(1, 8) : null,
+    resizeAlgorithm: !isResizeAlgorithm(settings.resizeAlgorithm) ? messages.invalidResizeAlgorithm : null,
   }
 }
 

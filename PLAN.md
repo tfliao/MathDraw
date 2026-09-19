@@ -1046,3 +1046,52 @@ sampling/palette/background/image unit tests and 43 browser cases covering image
 processing, dimensions, background behavior, large grids, and A4/Letter PDFs.
 Production build, type checking, and lint pass. No new resampling dependency,
 palette-policy change, or new PR is introduced.
+
+## 21. Selectable resizing, palette fidelity, and diagnostic bundles
+
+Continue the open PR #5 branch. Further investigation reproduced four distinct
+pale colors collapsing to white despite an eight-color budget. The old mandatory
+minimum CIE76 distance, not image resizing, caused this loss. The user explicitly
+approved preserving colors when they fit the limit and making extra merging
+optional. The user subsequently authorized decisions while away and requested a
+summary of those decisions.
+
+- Preserve sampled colors exactly when within effective capacity. Default extra
+  similar-color merging off; expose the old separation policy as an advanced toggle.
+- Add a localized advanced resizing selector, default Pica MKS2013. Provide nearest
+  neighbor, browser smoothing, and the previous foreground-dominant experiment.
+  Pica resizes directly to the fitted grid, not to a supersampled canvas followed
+  by foreground voting. All algorithms retain the exact-size copy path.
+- Use the published Pica package with native types and its tiled worker processing;
+  do not enable browser-dependent createImageBitmap resizing. Round fitted dimensions
+  to whole cells (minimum one); center with any odd spare cell on the right/bottom.
+  This avoids blending fractional padding into source edges.
+- Guard asynchronous generation against stale success and failure, cancel replaced
+  jobs, and own a bitmap clone during Pica processing so upload disposal is safe.
+- Add explicit local debugging-bundle download as self-contained JSON, avoiding
+  another archive dependency. Include original encoded bytes (including metadata),
+  decoded dimensions, algorithm/settings, pre-palette colors, final palette and
+  assignments, actual generated arithmetic, stage PNGs, and counts identifying
+  palette changes versus background whitening. Warn before sharing original data;
+  never upload automatically. Only export the current successful snapshot.
+- Without the user's actual image, do not claim every cause has been identified.
+  Keep necessary color reduction for capacity and explicit background skipping,
+  and expose their effects rather than disguising them as resampling errors.
+
+Independent local review found no significant issues. Passed 178 targeted unit
+cases and 84 distinct browser cases across focused runs. The pale 22-by-24 fixture
+retains all four colors with zero palette changes in every algorithm's identity
+path; enabling merging reproduces the loss of 396 colored cells. Default resizing
+matches Pica's independent MKS2013 buffer output exactly before quantization.
+Bundle downloads preserve original bytes and decoded stage PNGs; coverage includes
+background whitening, capacity reduction, stale successes/failures, active-error
+recovery, transparent colored edges, both languages, and existing print layouts.
+Large tiled Pica processing and bundle download also work through the actual
+production preview, with no external image requests.
+
+Earlier tests that required exactly two/three source colors now either specify
+their intended limit/nearest-neighbor mode or assert the real palette/result caps:
+MKS2013 legitimately introduces boundary shades, and merging is no longer automatic.
+Retain the original white-label, background, key-consistency, and PDF assertions.
+Production build, type checking, and lint pass. The only new runtime dependency
+is Pica (and its dependencies); no archive or testing library was added.

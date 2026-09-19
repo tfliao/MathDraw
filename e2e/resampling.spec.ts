@@ -61,8 +61,10 @@ test('same-size sampling does not normalize a real near-white source color', asy
   expect(actual.filter((color, index) => color !== fixture.expected[index]).length).toBe(0)
 })
 
-test('enlarging small pixel art does not invent edge colors or spread foreground into white pixels', async ({ page }) => {
+test('nearest-neighbor enlargement preserves hard pixel-art edges', async ({ page }) => {
   await page.goto('/')
+  await page.getByText('Advanced', { exact: true }).click()
+  await page.getByLabel('Image resizing algorithm').selectOption('nearest')
   const fixture = await pixelArt(page)
   const actual = await solution(page, 48, 44, fixture.file)
   const expected = Array.from({ length: 44 * 48 }, (_, index) => fixture.expected[Math.floor(Math.floor(index / 44) / 2) * 22 + Math.floor(index % 44 / 2)])

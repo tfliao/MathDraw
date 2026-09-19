@@ -51,7 +51,7 @@ dialogs follow their own language settings.
 ## Options
 
 Grid size and background skipping are on the main setup panel. Math difficulty,
-result mapping, and color limits are under **Advanced**.
+result mapping, resizing, and color options are under **Advanced**.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
@@ -66,6 +66,8 @@ result mapping, and color limits are under **Advanced**.
 | Multiple results per color | On | Uses the configured result cap; an answer still identifies exactly one color |
 | Maximum results per color | 3 | Integer from 1 to 8; applies when multiple results are enabled |
 | Maximum colors | 8 | Integer from 1 to 16; actual count may be lower |
+| Image resizing algorithm | Pica MKS2013 | Choose Pica, nearest neighbor, browser smoothing, or foreground dominant |
+| Merge similar colors | Off | Optionally merge perceptually close shades for easier coloring; can erase pale details |
 
 ## Arithmetic
 
@@ -81,19 +83,36 @@ problems remain, the app explains the conflict and disables generation.
 
 ## Images and backgrounds
 
-The full image is fitted without cropping or stretching. White margins are added
+The full image is fitted within the grid without cropping. White margins are added
 when necessary, and transparency is composited onto white. White counts as a
 palette color and is labeled **Leave white** when it has problems in the color key.
 
-### Experimental foreground-dominant cell colors
+### Resizing algorithms
 
 When the original image width/height exactly match the grid columns/rows,
 each white-composited source pixel goes directly to its corresponding cell,
-without resizing or foreground voting. For example, a 22 by 24 pixel image
-uses 22 columns and 24 rows. Palette simplification still applies: excess colors
-or similar shades can change even when pixel positions are preserved.
+without resizing or foreground voting, regardless of the selected algorithm.
+For example, a 22 by 24 pixel image uses 22 columns and 24 rows. With **Merge
+similar colors** and **Skip near-white background** off, its white-composited
+pixels remain unchanged if its colors fit the effective palette limit. Excess
+colors still need reduction; legal math answers can lower the effective limit.
 
-For other sizes on this experiment branch, each cell first ignores all near-white samples
+For other sizes, choose an algorithm under **Advanced**:
+
+| Algorithm | Behavior |
+| --- | --- |
+| **Pica MKS2013** (default) | Resizes directly to the fitted grid with a sharpening filter. Good general-purpose reduction; can introduce blended colors or slight halos |
+| **Nearest neighbor** | Selects source pixels without blending. Useful for pixel art and integer enlargement; shrinking can lose thin details |
+| **Browser smoothing** | Resizes directly to the fitted grid with the browser's high-quality canvas filter; results can differ between browsers |
+| **Foreground dominant** | Previous experiment: votes on 16 by 16 samples per cell, excluding near-white samples |
+
+Direct-grid algorithms round fitted dimensions to whole cells (at least one),
+with any odd extra margin on the right or bottom. No image region is cropped.
+Pica handles resizing locally; no image is sent to an external service.
+
+### Experimental foreground-dominant cell colors
+
+When **Foreground dominant** is selected for a different-size grid, each cell ignores all near-white samples
 (every RGB channel at least 240), whether or not they connect to an image edge.
 The remaining samples are grouped into RGB buckets spanning 16 levels per channel.
 The largest group wins; its most frequent actual sampled color represents the
@@ -108,7 +127,7 @@ bucket boundaries can split into different groups. Enlarging into the sampling
 canvas uses nearest-neighbor scaling to avoid inventing blurred foreground edges.
 Actual shrinking into that canvas still uses browser smoothing, which can blend
 source pixels before sampling. The later image-wide CIELAB palette selection and
-color limits are unchanged.
+color limit still applies; extra similar-color merging follows its separate toggle.
 
 This sampling experiment applies regardless of **Skip near-white background**.
 That separate toggle controls whether edge-connected near-white cells in the
@@ -130,8 +149,15 @@ explanation; turn the toggle off or choose another picture to get problems.
 
 ## Colors and result mappings
 
-Similar shades are merged to keep colors perceptually separated. The palette is
-also limited by the number of legal math answers. Multi-map results are listed
+By default, sampled colors are preserved exactly when they fit the palette limit.
+Enable **Merge similar colors** to restore the earlier minimum CIE76 distance of
+25 between colors. This can turn pale details white even when more colors would
+fit; leave it off when preserving the picture is more important than easily
+distinguishable coloring materials.
+
+The palette is always limited by **Maximum colors** and the number of legal math
+answers. Exceeding either limit requires color reduction even with extra merging
+disabled. Multi-map results are listed
 together beside their swatch, and every listed result is used in the puzzle.
 An answer always maps to exactly one color across the whole worksheet.
 
@@ -139,6 +165,25 @@ In **Advanced**, set **Maximum results per color** to 1-8 (default 3).
 This is an upper bound: limited cells or allowed answers may reduce the count.
 Turning multi-map off uses one result per active color and retains your configured
 cap for later use. Larger keys can require larger paper, without shrinking text.
+
+## Debugging unexpected image changes
+
+After creating a puzzle, the processing summary reports the number of colors
+before/after palette reduction, cells changed by the palette, and cells actually
+whitened by background skipping. The counts describe the generated snapshot, not
+unapplied edits.
+
+Use **Download debugging bundle** to save `mathdraw-debug.json`. The self-contained
+bundle includes the original file bytes and metadata, decoded dimensions, selected
+algorithm and settings, effective color limit, pre-palette RGB cells, palette and
+assignments, the actual generated problems, and three PNG images at grid resolution:
+before palette reduction, after reduction, and the visible solution.
+
+The download is local and explicit; nothing is uploaded. **The bundle includes
+the full original image and its embedded metadata.** Share it only if that is
+safe, preferably using a non-sensitive example. Editing inputs disables export
+until a new puzzle is generated, preventing a bundle from mixing old and new data.
+See [support instructions](SUPPORT.md#reporting-a-problem) for inspecting a bundle.
 
 ## Printing
 

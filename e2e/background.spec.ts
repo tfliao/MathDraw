@@ -34,6 +34,7 @@ for (const language of ['en', 'zh-TW'] as const) {
       await page.getByLabel(t.choosePicture).setInputFiles(await ringImage(page))
       await page.getByLabel(t.skipBackground, { exact: true }).check()
       await page.getByText(t.advanced, { exact: true }).click()
+      await page.getByLabel(t.resizeAlgorithm).selectOption('nearest')
       await expect(page.getByLabel(t.maxResultsPerColor, { exact: true })).toHaveValue('3')
       await page.getByLabel(t.maxResultsPerColor, { exact: true }).fill('8')
       await page.getByRole('button', { name: t.create, exact: true }).click()
@@ -68,7 +69,7 @@ for (const language of ['en', 'zh-TW'] as const) {
           expect(fills[index]).toBe(key.find(entry => entry.results.includes(result))?.color)
         }
       })
-      expect(fills[24]).toBe('#ffffff')
+      expect(fills[24]).toBe('#f5f8fa')
       await page.getByRole('button', { name: t.puzzle, exact: true }).click()
       expect(await grid.locator('td').allTextContents()).toEqual(problems)
 
@@ -134,6 +135,7 @@ test('validates result caps, limits scarce answers, and preserves the cap when m
   await page.goto('/')
   await page.getByLabel(t.choosePicture).setInputFiles(await imageFile(page))
   await page.getByText(t.advanced, { exact: true }).click()
+  await page.getByLabel(t.resizeAlgorithm).selectOption('nearest')
   const cap = page.getByLabel(t.maxResultsPerColor, { exact: true })
   for (const value of ['', '0', '9', '2.5']) {
     await cap.fill(value)

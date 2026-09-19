@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS } from '../domain/settings'
-import type { Operator, PuzzleSettings } from '../domain/settings'
+import type { Operator, PuzzleSettings, ResizeAlgorithm } from '../domain/settings'
 
 export interface SettingsDraft {
   allowZero: boolean
@@ -11,6 +11,8 @@ export interface SettingsDraft {
   maxColors: string
   maxResult: string
   allowZeroResults: boolean
+  resizeAlgorithm: ResizeAlgorithm
+  mergeSimilarColors: boolean
 }
 
 export const DEFAULT_DRAFT: SettingsDraft = {

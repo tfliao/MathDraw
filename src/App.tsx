@@ -4,6 +4,8 @@ import { worksheetLayout } from './domain/layout'
 import { createPuzzle } from './domain/puzzle'
 import type { Puzzle } from './domain/puzzle'
 import { processImage } from './image/process'
+import type { ImageDiagnostics } from './image/process'
+import { createDebugBundle, debugStats } from './image/debug'
 import { useImageInput } from './image/useImageInput'
 import { Worksheet } from './components/Worksheet'
 import type { ViewMode } from './components/Worksheet'
@@ -33,25 +35,32 @@ function App() {
   const autoGrid = image ? autoDimensions(image.bitmap.width, image.bitmap.height) : null
   const gridRows = autoSize ? autoGrid?.rows : Number(rows)
   const gridColumns = autoSize ? autoGrid?.columns : Number(columns)
-  const [snapshot, setSnapshot] = useState<{ puzzle: Puzzle; revision: number } | null>(null)
+  const [snapshot, setSnapshot] = useState<{ puzzle: Puzzle; revision: number; source: File; diagnostics: ImageDiagnostics } | null>(null)
   const [view, setView] = useState<ViewMode>('puzzle')
   const [revision, setRevision] = useState(0)
   const [generating, setGenerating] = useState(false)
   const [generationError, setGenerationError] = useState<UserFacingError | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [debugError, setDebugError] = useState<UserFacingError | null>(null)
   const request = useRef(0)
+  const generation = useRef<AbortController | null>(null)
   const busy = loading || generating
   const stale = snapshot !== null && snapshot.revision !== revision
   const { mode: printMode, printing, error: printError, print } = usePrint()
   const printReady = snapshot !== null && !stale && !busy && !generationError
   const printLayout = snapshot ? worksheetLayout(snapshot.puzzle) : null
+  const stats = snapshot ? debugStats(snapshot.puzzle, snapshot.diagnostics) : null
 
-  useEffect(() => () => { request.current++ }, [])
+  useEffect(() => () => { request.current++; generation.current?.abort() }, [])
 
   function changedInputs() {
     request.current++
+    generation.current?.abort()
     setRevision(value => value + 1)
     setGenerating(false)
     setGenerationError(null)
+    setDebugError(null)
+    setExporting(false)
   }
 
   async function generate() {
@@ -60,19 +69,49 @@ function App() {
       return
     }
     const id = ++request.current
+    generation.current?.abort()
+    const controller = new AbortController()
+    generation.current = controller
     setGenerating(true)
     setGenerationError(null)
+    setDebugError(null)
+    setExporting(false)
     // Yield once so the busy state paints before bounded CPU/canvas work.
     await new Promise<void>(resolve => setTimeout(resolve, 30))
     if (id !== request.current) return
     try {
-      const grid = processImage(image, gridRows, gridColumns, effectiveColors)
-      setSnapshot({ puzzle: createPuzzle(grid, settings), revision })
+      const grid = await processImage(image, gridRows, gridColumns, effectiveColors, settings.resizeAlgorithm, settings.mergeSimilarColors, controller.signal)
+      if (id !== request.current) return
+      setSnapshot({ puzzle: createPuzzle(grid, settings), revision, source: image.file, diagnostics: grid.diagnostics })
       setView('puzzle')
     } catch (cause) {
-      setGenerationError(userFacingError(cause, 'generationFailed'))
+      if (id === request.current) setGenerationError(userFacingError(cause, 'generationFailed'))
     } finally {
       if (id === request.current) setGenerating(false)
+    }
+  }
+
+  async function downloadDebug() {
+    if (!snapshot || !printReady || printing || exporting) return
+    const id = request.current
+    setExporting(true)
+    setDebugError(null)
+    try {
+      const blob = await createDebugBundle(snapshot.source, snapshot.puzzle, snapshot.diagnostics)
+      if (id !== request.current) return
+      const url = URL.createObjectURL(blob)
+      try {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = 'mathdraw-debug.json'
+        link.click()
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      }
+    } catch (cause) {
+      if (id === request.current) setDebugError(userFacingError(cause, 'debugFailed'))
+    } finally {
+      if (id === request.current) setExporting(false)
     }
   }
 
@@ -160,6 +199,7 @@ function App() {
                   <Worksheet puzzle={snapshot.puzzle} mode={view} />
                 </div>
                 <p className="help">{t.colorHelp}</p>
+                {stats && <p className="help" id="processing-summary">{t.processingSummary(stats.sampledColorCount, stats.paletteColorCount, stats.paletteChangedCells, stats.backgroundWhitenedCells)}</p>}
                 <div className="print-actions">
                   <button disabled={!printReady || printing} onClick={() => void print('puzzle')}>{t.printPuzzle}</button>
                   <button disabled={!printReady || printing} onClick={() => void print('solution')}>{t.printAnswer}</button>
@@ -168,6 +208,9 @@ function App() {
                 <p className="help print-help">{printLayout?.needsLargerPaper ? t.selectPaper : t.onePage} {t.printHelp}</p>
                 {printing && <p className="print-status" role="status">{t.printing}</p>}
                 <p className="field-error" role="alert">{printError && t[printError.code]}</p>
+                <button disabled={!printReady || printing || exporting} aria-describedby="debug-help" onClick={() => void downloadDebug()}>{exporting ? t.preparingDebug : t.downloadDebug}</button>
+                <p className="help" id="debug-help">{t.debugHelp}</p>
+                <p className="field-error" role="alert">{debugError && t[debugError.code]}</p>
               </div>
             ) : <div className="empty-state">
               <div className="pixel-flower" aria-hidden="true">

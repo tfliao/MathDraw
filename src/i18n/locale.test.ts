@@ -40,6 +40,7 @@ describe('message catalogs', () => {
         '16 columns x 20 rows / 1 color',
         '16 columns x 20 rows / 8 colors',
         'Enter a whole number from 4 to 64.',
+        'Colors before/after palette processing: 12 → 8. Cells changed by the palette: 23. Cells whitened by background skipping: 7.',
       ],
     },
     {
@@ -58,6 +59,7 @@ describe('message catalogs', () => {
         '16 欄 × 20 列 / 1 色',
         '16 欄 × 20 列 / 8 色',
         '請輸入 4～64 的整數。',
+        '調色盤處理前／後的顏色數：12 → 8。調色盤變更顏色的格數：23。略過背景而變白的格數：7。',
       ],
     },
   ])('formats dynamic $language messages without losing values or dimension order', ({ language, expected }) => {
@@ -76,6 +78,7 @@ describe('message catalogs', () => {
       messages.worksheetSize(16, 20, 1),
       messages.worksheetSize(16, 20, 8),
       messages.wholeNumber(4, 64),
+      messages.processingSummary(12, 8, 23, 7),
     ]).toEqual(expected)
   })
 })
