@@ -900,3 +900,44 @@ The independent local review found no significant issues. Checked all 26 relativ
 documentation links and anchors, confirmed the documented npm scripts and enabled
 GitHub issue channel, and verified that application files, dependency manifests,
 LICENSE, and the deployment workflow are unchanged.
+
+## 18. Dominant cell-color experiment
+
+Start `experiment/dominant-cell-colors` from freshly fetched `origin/master`
+at 8e92f8f, including merged PR #3. The user confirmed that "most significant"
+means the dominant area after grouping similar shades, not a small contrasting
+detail. Work only on this experiment branch and submit it for review.
+
+- Replace the linear-light average in cell sampling with a dominant-shade
+  histogram. Retain the existing 16 by 16 samples per cell, image fitting,
+  transparency composition, and browser canvas resize filtering.
+- Group sampled RGB values into fixed buckets of 16 levels per channel. Choose
+  the bucket with the largest population, then choose the most frequent actual
+  sampled RGB within it. Do not synthesize a new averaged color.
+- Resolve tied bucket populations by lower numeric RGB bucket index, and tied
+  representative frequencies by lower numeric RGB value, independent of sample
+  traversal order. Equal-area ties therefore have a deterministic color bias.
+- This lightweight experiment is intentionally not perceptual clustering at the
+  cell level. Similar shades on opposite bucket boundaries can split, and details
+  covering a small fraction of a cell can disappear. Canvas resizing may already
+  blend source pixels before sampling; the representative comes from the resized,
+  white-composited canvas, not necessarily an original source pixel.
+- Keep downstream weighted CIELAB medoid clustering, color separation, white
+  preservation, math result assignment, and background skipping unchanged.
+- Cover dominant groups versus exact-color modes, minority details, ties/order,
+  uniform colors and white, cell independence, and supported sampling resolutions.
+  Verify the actual image-to-puzzle browser pipeline and existing background flows.
+
+The tall 24-by-4 print fixture now retains five distinct palette colors, producing
+a taller grouped answer key. Its approximately 250 mm worksheet exceeds an old
+245 mm test ceiling but fits the actual A4/Letter printable height with the
+existing 10 mm margins. Use each paper's physical height minus those margins for
+the bound, while retaining one-page PDF, complete-content, and readable-cell
+assertions. No print layout or font sizes are changed for the experiment.
+
+Independent local code review found no significant issues. Passed 33 targeted
+sampling/palette/image unit tests and 37 distinct browser cases across focused
+runs, including the new dominant-shade fixture, background behavior, actual
+single-page A4/Letter PDFs, large multi-map keys, and maximum-size grids.
+Production build, type checking, and lint pass. The local preview serves the
+rebuilt experiment; only the experiment branch will be pushed for PR review.
