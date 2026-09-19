@@ -102,3 +102,27 @@ test('zero operands can actually appear and color limit one is honored', async (
   expect(problems.some(text => text.startsWith('0+') || text.endsWith('+0'))).toBe(true)
   expect(problems.every(text => /^[0-2]\+[0-2]$/.test(text))).toBe(true)
 })
+
+test('all advanced changes invalidate old printouts and the expanded panel fits mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 800 })
+  await page.goto('/')
+  await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
+  await page.getByText('Advanced', { exact: true }).click()
+  const edits = [
+    () => page.getByLabel('Maximum operand', { exact: true }).fill('10'),
+    () => page.getByLabel('Subtraction (-)', { exact: true }).check(),
+    () => page.getByLabel('Multiple results per color').check(),
+    () => page.getByLabel('Maximum colors', { exact: true }).fill('3'),
+    () => page.getByLabel('Allow zero operands').check(),
+  ]
+  for (const edit of edits) {
+    await page.getByRole('button', { name: 'Create puzzle' }).click()
+    await expect(page.getByRole('button', { name: 'Print puzzle', exact: true })).toBeEnabled()
+    const problems = await page.locator('.app-shell .math-grid td').allTextContents()
+    await edit()
+    await expect(page.getByRole('button', { name: 'Print puzzle', exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Print answer key', exact: true })).toBeDisabled()
+    expect(await page.locator('.app-shell .math-grid td').allTextContents()).toEqual(problems)
+  }
+  expect(await page.evaluate(() => document.body.scrollWidth)).toBeLessThanOrEqual(375)
+})

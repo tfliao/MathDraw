@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Rgb } from './color'
 import { createPuzzle } from './puzzle'
-import { answer, buildProblemPool, DEFAULT_SETTINGS } from './settings'
+import { answer, buildProblemPool, DEFAULT_SETTINGS, OPERATORS } from './settings'
 import type { ColorGrid } from './palette'
 
 const colors: Rgb[] = [[255, 255, 255], [0, 0, 0], [230, 20, 30], [10, 200, 30], [0, 20, 240], [245, 220, 10], [180, 30, 180], [0, 200, 200]]
@@ -90,5 +90,33 @@ describe('addition puzzles', () => {
     const puzzle = createPuzzle({ rows: 4, columns: 4, palette, assignments: palette.map((_, index) => index) }, { ...DEFAULT_SETTINGS, maxColors: 16 })
     expect(puzzle.key).toHaveLength(16)
     expect(new Set(puzzle.key.flatMap(entry => entry.results)).size).toBe(16)
+  })
+  it('maintains the mapping for every operator subset at both operand limits', () => {
+    let seed = 6193
+    const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296 }
+    for (let mask = 1; mask <= 7; mask++) {
+      for (const maxOperand of [2, 99]) {
+        for (const allowZero of [false, true]) {
+          for (const multiMap of [false, true]) {
+            const settings = { ...DEFAULT_SETTINGS, operators: OPERATORS.filter((_, index) => mask & (1 << index)), maxOperand, allowZero, multiMap }
+            const count = Math.min(colors.length, buildProblemPool(settings).size)
+            const puzzle = createPuzzle({ ...grid, palette: colors.slice(0, count), assignments: Array.from({ length: 16 }, (_, n) => n % count) }, settings, random)
+            const results = puzzle.key.flatMap(entry => entry.results)
+            expect(new Set(results).size).toBe(results.length)
+            expect(new Set(puzzle.cells.map(answer))).toEqual(new Set(results))
+            puzzle.key.forEach(entry => expect(entry.results.length).toBeLessThanOrEqual(multiMap ? 3 : 1))
+            puzzle.cells.forEach(cell => {
+              expect(settings.operators).toContain(cell.operator)
+              expect(cell.a).toBeGreaterThanOrEqual(allowZero ? 0 : 1)
+              expect(cell.b).toBeGreaterThanOrEqual(allowZero ? 0 : 1)
+              expect(cell.a).toBeLessThanOrEqual(maxOperand)
+              expect(cell.b).toBeLessThanOrEqual(maxOperand)
+              expect(answer(cell)).toBeGreaterThanOrEqual(0)
+              expect(puzzle.key.find(entry => entry.results.includes(answer(cell)))?.colorIndex).toBe(cell.colorIndex)
+            })
+          }
+        }
+      }
+    }
   })
 })

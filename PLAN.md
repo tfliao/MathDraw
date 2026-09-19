@@ -1,6 +1,6 @@
 # MathDraw implementation plan
 
-Status: V1 complete. V2 feature extension approved; implementation in progress.
+Status: V1 and V2 complete. All implementation iterations independently reviewed and committed.
 
 The V2 section below supersedes V1 limits where explicitly noted. V1 sections
 remain as the historical implementation and decision record.
@@ -445,19 +445,34 @@ images in the application.
 ### Create a paper activity
 
 1. Choose a PNG, JPEG, or WebP picture. Simple, high-contrast pictures work best.
-2. Set columns and rows, each between 4 and 24, then select "Create puzzle."
-3. Use "Puzzle" or "Solution" to inspect the generated activity. Changing setup
+2. Enable "Auto size from picture" for an image-proportioned grid within 24 by 24,
+   or choose 4-64 columns and 4-24 rows manually.
+3. Optionally expand "Advanced" to set zero operands, maximum operand (2-99),
+   allowed operators, multiple results per color, and maximum colors (1-16).
+   Defaults remain addition, nonzero operands through 9, one result per color,
+   and at most 8 colors. Then select "Create puzzle."
+4. Use "Puzzle" or "Solution" to inspect the generated activity. Changing setup
    fields does not alter the existing puzzle; generate again to apply changes.
-4. Select "Print puzzle" for the child's uncolored worksheet, or "Print answer
+5. Select "Print puzzle" for the child's uncolored worksheet, or "Print answer
    key" for the adult's colored solution. Printing never uses the screen's view
    selection to guess which sheet you want.
-5. In the print dialog, use portrait A4 or Letter, 100% scale, color printing, and
-   disable browser headers/footers. "Save as PDF" works through the same dialog.
+6. For default arithmetic and up to 24 columns, use portrait A4 or Letter.
+   For wider grids, longer problems, or larger keys, follow the displayed paper
+   dimensions and select sufficiently large paper/orientation. Always use 100%
+   scale, color printing, and disable browser headers/footers. "Save as PDF"
+   works through the same dialog. Cells are not automatically shrunk to A4;
+   insufficient paper or browser overrides can clip or scale the output.
 
-The key is shared by every cell. A "Leave white" entry still has a sum to solve,
+The key is shared by every cell. A "Leave white" entry still has a problem to solve,
 but that square should not be colored. Image colors are simplified and may not
 exactly match available crayons. Neither the original image nor generated puzzles
 are saved across a page refresh; save a PDF before leaving if needed.
+
+Multiple results per color uses up to three answers, listed vertically beside
+one swatch. An answer never refers to two colors. Subtraction never produces
+negative answers, but equal operands may produce zero even with zero operands
+disabled. Requested color counts are maximums: similar shades, image content,
+and the available arithmetic results may reduce the actual count.
 
 ### Development commands
 
@@ -565,7 +580,7 @@ ignored `dist`; it can be served by a static web host.
 - [x] Record the V2 plan in Git before implementation.
 - [x] Auto sizing and wider readable worksheets, reviewed and committed.
 - [x] Advanced arithmetic, multi-map, and palette controls, reviewed and committed.
-- [ ] Integrated validation, documentation, and final review committed.
+- [x] Integrated validation, documentation, and final review committed.
 
 ### V2 source-maintenance note
 
@@ -609,3 +624,24 @@ domain tests, 32 targeted browser/print cases, production build, and lint. The
 maximum-width advanced case includes more than eight separated colors, three
 answers per color, four-digit results, and exact arithmetic/key extraction from
 both puzzle and answer-key PDFs on sufficiently large paper.
+
+### V2 integrated results
+
+Added mapping-invariant coverage across all seven operator subsets, both operand
+limits (2 and 99), both zero settings, and both mapping modes. Added layout
+boundary tests and mobile checks that every Advanced change disables old
+printouts without mutating their snapshot. Updated the run/use instructions and
+page description to reflect configurable math rather than addition only.
+
+The complete run passed 104 Vitest tests, 47 Playwright browser cases, strict
+type checking, lint, and the production build. Browser coverage includes 20
+default A4/Letter PDFs plus four wider/advanced custom-paper PDFs. Expanded
+Advanced controls and grouped keys were visually inspected on desktop/mobile;
+maximum-width advanced puzzle and answer-key PDFs were rasterized and visually
+inspected. All source-image processing remained local.
+
+The existing local preview at `http://127.0.0.1:5173` serves the rebuilt V2
+application. The user-owned `OIP.webp` remains unmodified and untracked.
+The final independent sub-agent review found no significant issues in this
+completion increment. Each V2 implementation iteration was reviewed before its
+own meaningful commit, following the same source-maintenance workflow as V1.
