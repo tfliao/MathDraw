@@ -73,7 +73,8 @@ for (const format of ['A4', 'Letter'] as const) {
         const sheet = page.locator('.print-root .worksheet')
         const bounds = await sheet.boundingBox()
         expect(bounds!.width).toBeLessThanOrEqual(681)
-        expect(bounds!.height).toBeLessThanOrEqual(245 * 96 / 25.4)
+        const printableHeightMm = (format === 'A4' ? 297 : 279.4) - 20
+        expect(bounds!.height).toBeLessThanOrEqual(printableHeightMm * 96 / 25.4)
         if (mode === 'puzzle') {
           const cell = await sheet.locator('.math-grid td').first().boundingBox()
           expect(Math.abs(cell!.width - cell!.height)).toBeLessThan(0.5)

@@ -1,8 +1,24 @@
-import { linearToSrgb, srgbToLinear } from './color'
 import type { Rgb } from './color'
 import { assertDimensions } from './dimensions'
 
 export const SAMPLES_PER_CELL = 16
+
+interface ColorSample {
+  rgb: Rgb
+  count: number
+}
+
+interface ColorBucket {
+  count: number
+  colors: Map<number, ColorSample>
+}
+
+function mostFrequent<T extends { count: number }>(entries: ReadonlyMap<number, T>): T {
+  // Numeric RGB order makes equal-population ties independent of scan order.
+  return [...entries].reduce((best, next) =>
+    next[1].count > best[1].count || (next[1].count === best[1].count && next[0] < best[0]) ? next : best,
+  )[1]
+}
 
 export function fitImage(width: number, height: number, targetWidth: number, targetHeight: number) {
   if (![width, height, targetWidth, targetHeight].every(value => Number.isFinite(value) && value > 0)) {
@@ -22,18 +38,25 @@ export function sampleCells(data: Uint8ClampedArray, rows: number, columns: numb
   const colors: Rgb[] = []
   for (let row = 0; row < rows; row++) {
     for (let column = 0; column < columns; column++) {
-      const total = [0, 0, 0]
+      const buckets = new Map<number, ColorBucket>()
       for (let y = 0; y < samples; y++) {
         for (let x = 0; x < samples; x++) {
           const offset = ((row * samples + y) * width + column * samples + x) * 4
-          for (let channel = 0; channel < 3; channel++) total[channel] += srgbToLinear(data[offset + channel])
+          const rgb: Rgb = [data[offset], data[offset + 1], data[offset + 2]]
+          const bucketKey = (rgb[0] >> 4) * 256 + (rgb[1] >> 4) * 16 + (rgb[2] >> 4)
+          const colorKey = rgb[0] * 65536 + rgb[1] * 256 + rgb[2]
+          let bucket = buckets.get(bucketKey)
+          if (!bucket) {
+            bucket = { count: 0, colors: new Map() }
+            buckets.set(bucketKey, bucket)
+          }
+          bucket.count++
+          const existing = bucket.colors.get(colorKey)
+          if (existing) existing.count++
+          else bucket.colors.set(colorKey, { rgb, count: 1 })
         }
       }
-      colors.push([
-        linearToSrgb(total[0] / samples ** 2),
-        linearToSrgb(total[1] / samples ** 2),
-        linearToSrgb(total[2] / samples ** 2),
-      ])
+      colors.push(mostFrequent(mostFrequent(buckets).colors).rgb)
     }
   }
   return colors

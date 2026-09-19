@@ -142,6 +142,9 @@ separate text items or equivalent radicals.
   display so screen and print use the same multiplication sign.
 - Preserve the final palette's CIE76 distance of at least 25 and reserved-white
   behavior, even when increasing the requested color count.
+- The dominant-sampling experiment chooses the most frequent actual sample from
+  the largest 16-level RGB bucket per cell. Keep tie handling deterministic,
+  preserve uniform colors, and test the image-to-palette pipeline when changing it.
 - Respect current grid/image limits; release old bitmaps and object URLs, and
   discard stale asynchronous work.
 - Reuse `Worksheet` for screen and print. Keep readable cell/font sizes, and

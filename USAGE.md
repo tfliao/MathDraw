@@ -79,6 +79,21 @@ The full image is fitted without cropping or stretching. White margins are added
 when necessary, and transparency is composited onto white. White counts as a
 palette color and is labeled **Leave white** when it has problems in the color key.
 
+### Experimental dominant cell colors
+
+On this experiment branch, each cell uses its dominant shade group instead of
+averaging all its samples. The 16 by 16 samples are grouped into RGB buckets
+spanning 16 levels per channel. The largest group wins; its most frequent actual
+sampled color represents the cell. Equal counts use numeric RGB order for stable
+results, not the order pixels are visited.
+
+This avoids mixing a large region with a small contrasting detail, but that detail
+may disappear. Similar shades on opposite bucket boundaries can split into
+different groups. Browser resizing can still blend source pixels before this
+step. The later image-wide CIELAB palette selection and color limits are unchanged.
+
+### Skipping backgrounds
+
 Enable **Skip near-white background** to leave background squares without math
 problems. Detection uses the final resized, simplified grid: every RGB channel
 must be at least 240, and cells must connect to an outer edge through shared
