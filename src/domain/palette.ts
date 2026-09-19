@@ -41,7 +41,7 @@ function representative(cluster: readonly Sample[]): Sample {
   return best
 }
 
-export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MAX_COLORS): Pick<ColorGrid, 'palette' | 'assignments'> {
+export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MAX_COLORS, mergeSimilarColors = false): Pick<ColorGrid, 'palette' | 'assignments'> {
   if (!Number.isInteger(maximumColors) || maximumColors < 1 || maximumColors > MAX_COLORS) throw new Error('Maximum colors must be a whole number from 1 to 16.')
   if (colors.length === 0 || colors.length > MAX_CELLS) throw new Error(`Provide between 1 and ${MAX_CELLS} cell colors.`)
   const unique = new Map<string, Sample>()
@@ -55,6 +55,11 @@ export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MA
     else unique.set(key, { rgb, lab: rgbToLab(rgb), count: 1 })
   }
   const samples = [...unique.values()]
+  if (!mergeSimilarColors && samples.length <= maximumColors) {
+    const palette = samples.map(sample => sample.rgb)
+    const indices = new Map(palette.map((rgb, index) => [toHex(rgb), index]))
+    return { palette, assignments: colors.map(rgb => indices.get(toHex(rgb))!) }
+  }
   const frequent = samples.reduce((best, sample) => sample.count > best.count ? sample : best)
   let centers = [samples.find(sample => isWhite(sample.rgb)) ?? frequent]
   while (centers.length < Math.min(maximumColors, samples.length)) {
@@ -86,7 +91,7 @@ export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MA
   const clusters = partition()
   centers = clusters.map(representative)
   // Recompute after every merge: moving a medoid can make another pair too close.
-  while (centers.length > 1) {
+  while (mergeSimilarColors && centers.length > 1) {
     let pair: [number, number] | undefined
     let distance = MIN_COLOR_DISTANCE
     for (let a = 0; a < centers.length; a++) {

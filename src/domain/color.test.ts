@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { colorDistance, linearToSrgb, rgbToLab, srgbToLinear, toHex } from './color'
+import { colorDistance, isNearWhite, linearToSrgb, rgbToLab, srgbToLinear, toHex } from './color'
 import type { Rgb } from './color'
 
 describe('color math', () => {
@@ -18,5 +18,16 @@ describe('color math', () => {
   it('formats hex and computes CIE76 distance', () => {
     expect(toHex([0, 15, 255])).toBe('#000fff')
     expect(colorDistance([0, 0, 0], [3, 4, 0])).toBe(5)
+  })
+  it.each([
+    [[255, 255, 255], true],
+    [[240, 240, 240], true],
+    [[255, 240, 250], true],
+    [[239, 255, 255], false],
+    [[255, 239, 255], false],
+    [[255, 255, 239], false],
+    [[0, 0, 0], false],
+  ] satisfies [Rgb, boolean][])('classifies near-white RGB %j as %s', (rgb, expected) => {
+    expect(isNearWhite(rgb)).toBe(expected)
   })
 })

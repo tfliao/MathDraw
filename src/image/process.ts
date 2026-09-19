@@ -1,8 +1,12 @@
+import pica from 'pica'
 import { assertDimensions } from '../domain/dimensions'
+import { toHex } from '../domain/color'
+import type { Rgb } from '../domain/color'
 import { reducePalette } from '../domain/palette'
 import type { ColorGrid } from '../domain/palette'
 import { fitImage, sampleCells, SAMPLES_PER_CELL } from '../domain/sampling'
-import { DEFAULT_MAX_COLORS } from '../domain/settings'
+import { DEFAULT_MAX_COLORS, DEFAULT_SETTINGS, isResizeAlgorithm } from '../domain/settings'
+import type { ResizeAlgorithm } from '../domain/settings'
 import { UserFacingError } from '../i18n/locale'
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -10,6 +14,7 @@ export const MAX_PIXELS = 40_000_000
 
 export interface LoadedImage {
   readonly bitmap: ImageBitmap
+  readonly file: File
   readonly previewUrl: string
   readonly name: string
   dispose(): void
@@ -61,7 +66,7 @@ export async function loadImage(file: File): Promise<LoadedImage> {
     })
     const previewUrl = URL.createObjectURL(blob)
     return {
-      bitmap, previewUrl, name: file.name,
+      bitmap, file, previewUrl, name: file.name,
       dispose() { bitmap.close(); URL.revokeObjectURL(previewUrl) },
     }
   } catch (error) {
@@ -70,12 +75,86 @@ export async function loadImage(file: File): Promise<LoadedImage> {
   }
 }
 
-export function processImage(image: LoadedImage, rows: number, columns: number, maximumColors = DEFAULT_MAX_COLORS): ColorGrid {
+export interface ImageDiagnostics {
+  readonly pipelineVersion: '2'
+  readonly sourceWidth: number
+  readonly sourceHeight: number
+  readonly requestedAlgorithm: ResizeAlgorithm
+  readonly appliedAlgorithm: ResizeAlgorithm | 'identity'
+  readonly effectiveMaximumColors: number
+  readonly samplesPerCellSide: number
+  readonly fittedBounds: ReturnType<typeof fitImage>
+  readonly sampledColors: readonly Rgb[]
+  readonly sampledColorCount: number
+  readonly paletteChangedCells: number
+}
+
+export interface ProcessedImage extends ColorGrid {
+  readonly diagnostics: ImageDiagnostics
+}
+
+const resizer = pica()
+
+async function resizeWithPica(bitmap: ImageBitmap, canvas: HTMLCanvasElement, signal?: AbortSignal) {
+  // Own a clone: replacing the upload can dispose the original while Pica awaits workers.
+  const source = await createImageBitmap(bitmap)
+  let cancel: (() => void) | undefined
+  try {
+    signal?.throwIfAborted()
+    const cancelToken = signal && new Promise<never>((_, reject) => {
+      cancel = () => reject(signal.reason)
+      signal.addEventListener('abort', cancel, { once: true })
+    })
+    await resizer.resize(source, canvas, { filter: 'mks2013', cancelToken })
+  } finally {
+    if (cancel) signal?.removeEventListener('abort', cancel)
+    source.close()
+  }
+}
+
+export async function processImage(
+  image: LoadedImage, rows: number, columns: number, maximumColors = DEFAULT_MAX_COLORS,
+  algorithm: ResizeAlgorithm = DEFAULT_SETTINGS.resizeAlgorithm,
+  mergeSimilarColors = DEFAULT_SETTINGS.mergeSimilarColors, signal?: AbortSignal,
+): Promise<ProcessedImage> {
   assertDimensions(rows, columns)
   validateImageDimensions(image.bitmap.width, image.bitmap.height)
-  const { canvas, context } = makeCanvas(columns * SAMPLES_PER_CELL, rows * SAMPLES_PER_CELL)
-  const fit = fitImage(image.bitmap.width, image.bitmap.height, canvas.width, canvas.height)
-  context.drawImage(image.bitmap, fit.x, fit.y, fit.width, fit.height)
-  const colors = sampleCells(context.getImageData(0, 0, canvas.width, canvas.height).data, rows, columns)
-  return { rows, columns, ...reducePalette(colors, maximumColors) }
+  if (!isResizeAlgorithm(algorithm)) throw new UserFacingError('invalidResizeAlgorithm')
+  signal?.throwIfAborted()
+  const sourceWidth = image.bitmap.width
+  const sourceHeight = image.bitmap.height
+  const sameSize = image.bitmap.width === columns && image.bitmap.height === rows
+  const samples = !sameSize && algorithm === 'foreground' ? SAMPLES_PER_CELL : 1
+  const { canvas, context } = makeCanvas(columns * samples, rows * samples)
+  let fit = fitImage(sourceWidth, sourceHeight, canvas.width, canvas.height)
+  if (!sameSize && algorithm !== 'foreground') {
+    // Align fitted edges with cells rather than blending fractional padding into the picture.
+    const width = Math.max(1, Math.round(fit.width))
+    const height = Math.max(1, Math.round(fit.height))
+    fit = { x: Math.floor((columns - width) / 2), y: Math.floor((rows - height) / 2), width, height }
+  }
+  if (!sameSize && algorithm === 'pica') {
+    const target = makeCanvas(fit.width, fit.height).canvas
+    await resizeWithPica(image.bitmap, target, signal)
+    signal?.throwIfAborted()
+    context.drawImage(target, fit.x, fit.y)
+  } else {
+    context.imageSmoothingEnabled = algorithm === 'browser' || (algorithm === 'foreground' && fit.width < sourceWidth)
+    context.drawImage(image.bitmap, fit.x, fit.y, fit.width, fit.height)
+  }
+  const data = context.getImageData(0, 0, canvas.width, canvas.height).data
+  const colors = samples === 1
+    ? Array.from({ length: rows * columns }, (_, index): Rgb => [data[index * 4], data[index * 4 + 1], data[index * 4 + 2]])
+    : sampleCells(data, rows, columns)
+  const grid = reducePalette(colors, maximumColors, mergeSimilarColors)
+  return {
+    rows, columns, ...grid,
+    diagnostics: {
+      pipelineVersion: '2', sourceWidth, sourceHeight, requestedAlgorithm: algorithm,
+      appliedAlgorithm: sameSize ? 'identity' : algorithm, fittedBounds: fit,
+      effectiveMaximumColors: maximumColors, samplesPerCellSide: samples,
+      sampledColors: colors, sampledColorCount: new Set(colors.map(toHex)).size,
+      paletteChangedCells: colors.filter((rgb, index) => toHex(rgb) !== toHex(grid.palette[grid.assignments[index]])).length,
+    },
+  }
 }

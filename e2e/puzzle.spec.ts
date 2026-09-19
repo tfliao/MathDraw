@@ -5,10 +5,10 @@ test('puzzle sums share a stable key and reveal the same picture', async ({ page
   await page.goto('/')
   await page.getByLabel('1. Choose a picture').setInputFiles(await imageFile(page))
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  const grid = page.getByRole('table', { name: '12 by 24 addition puzzle' })
+  const grid = page.getByRole('table', { name: '13 by 25 addition puzzle' })
   await expect(grid).toBeVisible()
   const problems = await grid.locator('td').allTextContents()
-  expect(problems).toHaveLength(288)
+  expect(problems).toHaveLength(325)
   const key = await page.locator('.app-shell .color-key td').evaluateAll(cells => cells.map(cell => ({ results: cell.getAttribute('data-results')!.split(',').map(Number), color: cell.getAttribute('data-color') })))
   for (const problem of problems) {
     expect(problem).toMatch(/^[1-9]\+[1-9]$/)

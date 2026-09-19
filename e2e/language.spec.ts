@@ -121,6 +121,7 @@ test.describe('explicit language preference', () => {
 test('switching language preserves the generated puzzle, settings, image, view and print readiness', async ({ page }) => {
   await page.goto('/')
   await page.getByText(en.advanced, { exact: true }).click()
+  await page.getByLabel(en.resizeAlgorithm).selectOption('nearest')
   await page.getByLabel(en.maxOperand, { exact: true }).fill('7')
   await page.getByLabel(en.maxResult, { exact: true }).fill('13')
   await page.getByLabel(en.multiMap, { exact: true }).uncheck()
@@ -140,6 +141,7 @@ test('switching language preserves the generated puzzle, settings, image, view a
   await expect(page.getByRole('img', { name: zhTW.originalPicture('picture.png'), exact: true })).toHaveAttribute('src', source!)
   await expect(page.getByRole('img', { name: zhTW.pixelPicture(8, 8, 8), exact: true })).toBeVisible()
   expect(await settingsData(page)).toEqual(settings)
+  await expect(page.getByLabel(zhTW.resizeAlgorithm)).toHaveValue('nearest')
   expect(await keyData(page)).toEqual(key)
   expect(await page.locator('.app-shell .color-preview rect').evaluateAll(rects => rects.map(rect => rect.getAttribute('fill')))).toEqual(colors)
   await expect(page.locator('.app-shell .worksheet-instructions')).toHaveText(zhTW.answerInstructions)

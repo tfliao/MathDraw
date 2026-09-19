@@ -28,6 +28,7 @@ describe('message catalogs', () => {
       language: 'en' as const,
       expected: [
         'Original picture: 我的 picture.png',
+        'Original image: width 640 px × height 320 px.',
         'Auto size: 16 columns x 20 rows.',
         'These math settings provide 3 distinct answers, so the color limit is reduced to 2.',
         'Choose larger paper: this worksheet needs at least 250 mm wide x 310 mm tall, including margins. Keep 100% scale to preserve readable cells. Smaller paper may clip the puzzle.',
@@ -39,12 +40,14 @@ describe('message catalogs', () => {
         '16 columns x 20 rows / 1 color',
         '16 columns x 20 rows / 8 colors',
         'Enter a whole number from 4 to 64.',
+        'Colors before/after palette processing: 12 → 8. Cells changed by the palette: 23. Cells whitened by background skipping: 7.',
       ],
     },
     {
       language: 'zh-TW' as const,
       expected: [
         '原始圖片：我的 picture.png',
+        '原始圖片：寬 640 像素 × 高 320 像素。',
         '自動格數：16 欄 × 20 列。',
         '目前的數學設定可產生 3 種不同答案，因此顏色上限調整為 2 色。',
         '請選擇較大的紙張：含邊界的學習單至少需要寬 250 mm、高 310 mm。請保持 100% 比例，讓格子清楚易讀。紙張太小可能會裁切拼圖。',
@@ -56,12 +59,14 @@ describe('message catalogs', () => {
         '16 欄 × 20 列 / 1 色',
         '16 欄 × 20 列 / 8 色',
         '請輸入 4～64 的整數。',
+        '調色盤處理前／後的顏色數：12 → 8。調色盤變更顏色的格數：23。略過背景而變白的格數：7。',
       ],
     },
   ])('formats dynamic $language messages without losing values or dimension order', ({ language, expected }) => {
     const messages = catalogs[language]
     expect([
       messages.originalPicture('我的 picture.png'),
+      messages.imageDimensions(640, 320),
       messages.autoSizeValue(16, 20),
       messages.reducedColors(3, 2),
       messages.largerPaper(250, 310),
@@ -73,6 +78,7 @@ describe('message catalogs', () => {
       messages.worksheetSize(16, 20, 1),
       messages.worksheetSize(16, 20, 8),
       messages.wholeNumber(4, 64),
+      messages.processingSummary(12, 8, 23, 7),
     ]).toEqual(expected)
   })
 })

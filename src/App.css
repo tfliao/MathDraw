@@ -91,7 +91,7 @@ footer { border-top: 1px solid #e3e7df; padding: 22px 0; font-size: 11px; color:
 .advanced-settings fieldset { border: 0; padding: 0; margin: 16px 0 0; min-width: 0; }
 .advanced-settings legend { font-weight: 700; padding: 0; }
 .advanced-settings label:not(.toggle-field) { display: block; margin: 10px 0 6px; }
-.advanced-settings input[type="number"] { width: 100%; border: 1px solid #dce3d9; border-radius: 7px; padding: 10px 12px; color: #233e39; }
+.advanced-settings input[type="number"], .advanced-settings select { width: 100%; min-width: 0; border: 1px solid #dce3d9; border-radius: 7px; padding: 10px 12px; color: #233e39; background: white; }
 .advanced-settings .help { margin: 6px 0 12px; }
 .operator-options input { accent-color: #245f54; vertical-align: middle; margin-right: 7px; }
 @media (max-width: 760px) {

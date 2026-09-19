@@ -900,3 +900,230 @@ The independent local review found no significant issues. Checked all 26 relativ
 documentation links and anchors, confirmed the documented npm scripts and enabled
 GitHub issue channel, and verified that application files, dependency manifests,
 LICENSE, and the deployment workflow are unchanged.
+
+## 18. Dominant cell-color experiment
+
+Start `experiment/dominant-cell-colors` from freshly fetched `origin/master`
+at 8e92f8f, including merged PR #3. The user confirmed that "most significant"
+means the dominant area after grouping similar shades, not a small contrasting
+detail. Work only on this experiment branch and submit it for review.
+
+- Replace the linear-light average in cell sampling with a dominant-shade
+  histogram. Retain the existing 16 by 16 samples per cell, image fitting,
+  transparency composition, and browser canvas resize filtering.
+- Group sampled RGB values into fixed buckets of 16 levels per channel. Choose
+  the bucket with the largest population, then choose the most frequent actual
+  sampled RGB within it. Do not synthesize a new averaged color.
+- Resolve tied bucket populations by lower numeric RGB bucket index, and tied
+  representative frequencies by lower numeric RGB value, independent of sample
+  traversal order. Equal-area ties therefore have a deterministic color bias.
+- This lightweight experiment is intentionally not perceptual clustering at the
+  cell level. Similar shades on opposite bucket boundaries can split, and details
+  covering a small fraction of a cell can disappear. Canvas resizing may already
+  blend source pixels before sampling; the representative comes from the resized,
+  white-composited canvas, not necessarily an original source pixel.
+- Keep downstream weighted CIELAB medoid clustering, color separation, white
+  preservation, math result assignment, and background skipping unchanged.
+- Cover dominant groups versus exact-color modes, minority details, ties/order,
+  uniform colors and white, cell independence, and supported sampling resolutions.
+  Verify the actual image-to-puzzle browser pipeline and existing background flows.
+
+The tall 24-by-4 print fixture now retains five distinct palette colors, producing
+a taller grouped answer key. Its approximately 250 mm worksheet exceeds an old
+245 mm test ceiling but fits the actual A4/Letter printable height with the
+existing 10 mm margins. Use each paper's physical height minus those margins for
+the bound, while retaining one-page PDF, complete-content, and readable-cell
+assertions. No print layout or font sizes are changed for the experiment.
+
+Independent local code review found no significant issues. Passed 33 targeted
+sampling/palette/image unit tests and 37 distinct browser cases across focused
+runs, including the new dominant-shade fixture, background behavior, actual
+single-page A4/Letter PDFs, large multi-map keys, and maximum-size grids.
+Production build, type checking, and lint pass. The local preview serves the
+rebuilt experiment; only the experiment branch will be pushed for PR review.
+
+## 19. Foreground-dominant sampling and image dimensions
+
+Start `experiment/foreground-cell-colors` from freshly fetched `origin/master`
+at 8e92f8f. The first experiment (PR #4) is unmerged, so carry its two reviewed
+commits onto this separate branch before extending it. Leave master and PR #4
+unchanged so the user can compare experiments.
+
+- The user confirmed ignoring **all near-white samples**, not only those
+  connected to image edges. Exclude samples whose RGB channels are all >= 240
+  before choosing the dominant bucket and its most frequent actual foreground
+  color. If no foreground sample remains, return exact white.
+- Reuse one near-white predicate for this sampler and the existing background
+  detector. Sampling is separate from "Skip near-white background": it excludes
+  near-white samples regardless of that toggle, while omitting math problems
+  still uses edge-connected regions of the final grid.
+- A tiny dark/colored mark can now determine a mostly white cell. Noise and
+  antialiased edge samples can be amplified; record this experimental tradeoff.
+  Canvas resizing and the downstream global palette remain unchanged.
+- After successful image decoding, show original width and height in pixels
+  beneath the image preview, with explicit width/height labels in both languages.
+  Use the EXIF-oriented bitmap dimensions, not the reduced preview dimensions.
+  Replacement, clearing, and failure must not leave stale dimensions displayed.
+- Keep auto/manual grid behavior and limits unchanged. Dimensions are reference
+  information for choosing a proportional manual grid, not an automatic copy
+  of a potentially enormous pixel resolution.
+
+The independent local review found no significant issues. Passed 94 targeted
+color/sampling/background/palette/locale unit tests and 61 browser cases across
+focused runs, including actual foreground selection, white-only fallback,
+original versus thumbnail dimensions, EXIF orientation, image replacement and
+failure cleanup, both languages, mobile layout, and existing print/large-grid
+flows. Build, type checking, and lint pass. The local preview serves this second
+experiment; the first experiment branch and PR remain unchanged.
+
+## 20. Same-size image fidelity and resizing research
+
+Continue `experiment/foreground-cell-colors` and update existing PR #5. The user
+has changed the workflow: do not open a PR for every follow-up request; create
+the next PR only after the preceding PR has merged. Record the current rule in
+CONTRIBUTING without rewriting the earlier experimental history or closing PRs.
+
+### Reproduction and fix
+
+No original problem image was supplied. Generated 22-by-24 PNGs with isolated
+pixels, thin lines, checkerboard details, and four well-separated colors reproduce
+the issue without palette-capacity ambiguity. Before the fix, 50 of 528 cells
+differ from the opaque source, and the transparent-background version has the
+same failure. Two-times enlargement changes 184 cells; a padded grid also fails.
+A solid near-white source becomes white despite requesting unchanged dimensions.
+
+The processing canvas always enlarged the image to 16 samples per cell with
+smoothing enabled, even for an unchanged grid. Interpolation invented edge
+colors; ignoring near-white samples then amplified remaining foreground fringes.
+The preview thumbnail is not the processing source.
+
+- If decoded image dimensions exactly match the grid, composite transparency
+  onto white at original size and use those pixels directly, bypassing both the
+  artificial enlargement and foreground-voting normalization.
+- For other sizes, retain the bounded 16-by-16 sampling canvas and aspect fitting.
+  Disable smoothing when enlarging or copying into that canvas. Retain browser
+  smoothing when genuinely shrinking into it; do not allocate a full-resolution
+  canvas for large source images.
+- Keep the foreground experiment for actual resizing, image limits, background
+  skipping, and global palette reduction. Color/result capacity and the existing
+  minimum CIE76 distance of 25 may still change colors, including in same-size
+  images. Do not promise identical output when palette constraints require merges.
+
+### Resizing research and recommendation
+
+There is no universally best reducer: preserving discrete pixel art, retaining
+tiny foreground marks, and reducing photographic aliasing are different goals.
+
+| Approach | Suitability and tradeoff |
+| --- | --- |
+| Direct pixel copy | Correct starting point for unchanged dimensions; no resize filter is needed |
+| Nearest neighbor | Preserves hard edges and source colors when enlarging pixel art; shrinking can miss thin details and alias |
+| Area/box reduction | Good baseline for shrinking photographs by combining contributing pixels; blends colors and can weaken small foreground marks |
+| Lanczos / Pica's default MKS2013 | Candidates for sharper photographic reductions; sharp filters can introduce ringing/halos and still do not preserve discrete source colors |
+| Foreground-dominant sampling | Retains small marks on near-white backgrounds, but can amplify noise and sacrifice minority foreground colors |
+
+Primary references:
+
+- [MDN: imageSmoothingEnabled](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled)
+  documents default smoothing and disabling it to retain enlarged pixel-art edges.
+- [OpenCV: geometric transformations](https://docs.opencv.org/4.13.0/da/d6e/tutorial_py_geometric_transformations.html)
+  recommends INTER_AREA for shrinking images.
+- [Pillow: filters](https://pillow.readthedocs.io/en/stable/handbook/concepts.html#filters)
+  distinguishes nearest, box, bilinear, bicubic, Hamming, and Lanczos resampling.
+- [Pica](https://github.com/nodeca/pica)
+  provides browser-side tiled JS/WASM resizing; its default is MKS2013, not area
+  averaging, and browser createImageBitmap resizing is disabled by default.
+
+Implement the demonstrated copy/enlargement fix now, without adding a dependency
+or replacing photo reduction on an unmeasured recommendation. A future comparison
+should measure thin-detail retention, aliasing, halos, palette stability, and
+runtime on both pixel art and photographs before adopting area or sharper filters.
+
+Independent local review found no significant issues. All five new browser
+regressions failed before the fix and pass afterward, with zero differing cells
+in the controlled identity, enlargement, and padding fixtures. Passed 49 targeted
+sampling/palette/background/image unit tests and 43 browser cases covering image
+processing, dimensions, background behavior, large grids, and A4/Letter PDFs.
+Production build, type checking, and lint pass. No new resampling dependency,
+palette-policy change, or new PR is introduced.
+
+## 21. Selectable resizing, palette fidelity, and diagnostic bundles
+
+Continue the open PR #5 branch. Further investigation reproduced four distinct
+pale colors collapsing to white despite an eight-color budget. The old mandatory
+minimum CIE76 distance, not image resizing, caused this loss. The user explicitly
+approved preserving colors when they fit the limit and making extra merging
+optional. The user subsequently authorized decisions while away and requested a
+summary of those decisions.
+
+- Preserve sampled colors exactly when within effective capacity. Default extra
+  similar-color merging off; expose the old separation policy as an advanced toggle.
+- Add a localized advanced resizing selector, default Pica MKS2013. Provide nearest
+  neighbor, browser smoothing, and the previous foreground-dominant experiment.
+  Pica resizes directly to the fitted grid, not to a supersampled canvas followed
+  by foreground voting. All algorithms retain the exact-size copy path.
+- Use the published Pica package with native types and its tiled worker processing;
+  do not enable browser-dependent createImageBitmap resizing. Round fitted dimensions
+  to whole cells (minimum one); center with any odd spare cell on the right/bottom.
+  This avoids blending fractional padding into source edges.
+- Guard asynchronous generation against stale success and failure, cancel replaced
+  jobs, and own a bitmap clone during Pica processing so upload disposal is safe.
+- Add explicit local debugging-bundle download as self-contained JSON, avoiding
+  another archive dependency. Include original encoded bytes (including metadata),
+  decoded dimensions, algorithm/settings, pre-palette colors, final palette and
+  assignments, actual generated arithmetic, stage PNGs, and counts identifying
+  palette changes versus background whitening. Warn before sharing original data;
+  never upload automatically. Only export the current successful snapshot.
+- Without the user's actual image, do not claim every cause has been identified.
+  Keep necessary color reduction for capacity and explicit background skipping,
+  and expose their effects rather than disguising them as resampling errors.
+
+Independent local review found no significant issues. Passed 178 targeted unit
+cases and 84 distinct browser cases across focused runs. The pale 22-by-24 fixture
+retains all four colors with zero palette changes in every algorithm's identity
+path; enabling merging reproduces the loss of 396 colored cells. Default resizing
+matches Pica's independent MKS2013 buffer output exactly before quantization.
+Bundle downloads preserve original bytes and decoded stage PNGs; coverage includes
+background whitening, capacity reduction, stale successes/failures, active-error
+recovery, transparent colored edges, both languages, and existing print layouts.
+Large tiled Pica processing and bundle download also work through the actual
+production preview, with no external image requests.
+
+Earlier tests that required exactly two/three source colors now either specify
+their intended limit/nearest-neighbor mode or assert the real palette/result caps:
+MKS2013 legitimately introduces boundary shades, and merging is no longer automatic.
+Retain the original white-label, background, key-consistency, and PDF assertions.
+Production build, type checking, and lint pass. The only new runtime dependency
+is Pica (and its dependencies); no archive or testing library was added.
+
+## 22. Larger A4 range and local-only debugging downloads
+
+Continue the existing open PR #5 branch. The user confirmed expanding Auto size,
+warnings, and print-fit guidance together to 25 columns by 28 rows. Manual limits
+remain 4-64. Share the new bounds between auto fitting and advisory warnings;
+fit each image proportionally into the rectangular limit rather than using one
+maximum dimension for both axes.
+
+Before changing guidance, measured actual 25-by-28 PDFs in both languages:
+eight-color default keys fit one A4 page, but five-color keys (three answers in
+both key rows) used roughly 280-281 mm of content and overflowed the 277 mm
+printable height. Tighten heading/instruction/key/footer gaps and key cell padding,
+without changing cell size, font sizes, or 10 mm page margins. Align the layout
+estimate with these gaps and A4's real 190-by-277 mm content area; retain warnings
+for larger keys, extra background instructions, and long expressions. Do not claim
+that the new A4 range also fits the shorter Letter format.
+
+The user's follow-up restricts debugging downloads to local hosting. Gate the
+button, disclosure/error UI, and download handler by loopback hostname: localhost
+(including its terminal-dot form), IPv4 127/8, and IPv6 ::1. Do not treat LAN IPs,
+wildcard bind addresses, public domains, or localhost-lookalike names as local.
+This is runtime host behavior, so production previews on loopback retain the
+feature while GitHub Pages does not. Keep processing statistics visible everywhere.
+
+Independent local review found no significant issues. Passed 90 targeted unit
+tests and 82 browser cases across focused runs, including eight actual 25-by-28
+A4 PDFs (five/eight colors, both languages, both modes), warning boundaries,
+loopback/public-host controls, and existing Letter/large-paper flows. New A4 PDFs
+fit one page with unchanged 7.5 mm cells and 10 pt arithmetic. Build, type checking,
+and lint pass; the rebuilt production preview also confirms both the new automatic
+dimensions and local-only diagnostic control.

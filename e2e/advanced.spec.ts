@@ -57,7 +57,7 @@ test('subtraction caps colors by answer capacity and allows zero results without
   await page.getByLabel('Maximum colors', { exact: true }).fill('16')
   await expect(page.getByText('These math settings provide 2 distinct answers', { exact: false })).toBeVisible()
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  await expect(page.getByRole('table', { name: '12 by 24 math puzzle' })).toBeVisible()
+  await expect(page.getByRole('table', { name: '13 by 25 math puzzle' })).toBeVisible()
   await expect(page.locator('.app-shell .color-key td')).toHaveCount(2)
   const expressions = await page.locator('.app-shell .math-grid td').allTextContents()
   expect(expressions.every(text => /^[12]-[12]$/.test(text))).toBe(true)
@@ -74,7 +74,7 @@ test('multiplication multi-map uses grouped results and survives view switching'
   await page.getByLabel('Maximum operand', { exact: true }).fill('99')
   await page.getByLabel('Multiple results per color').check()
   await page.getByRole('button', { name: 'Create puzzle' }).click()
-  await expect(page.getByRole('table', { name: '12 by 24 math puzzle' })).toBeVisible()
+  await expect(page.getByRole('table', { name: '13 by 25 math puzzle' })).toBeVisible()
   const problems = await page.locator('.app-shell .math-grid td').allTextContents()
   const entries = await page.locator('.app-shell .color-key td').evaluateAll(cells => cells.map(cell => ({
     results: cell.getAttribute('data-results')!.split(',').map(Number), color: cell.getAttribute('data-color'),

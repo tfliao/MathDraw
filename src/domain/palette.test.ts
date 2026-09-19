@@ -4,7 +4,7 @@ import type { Rgb } from './color'
 import { MIN_COLOR_DISTANCE, reducePalette } from './palette'
 
 function assertPalette(colors: readonly Rgb[], maximumColors = 8) {
-  const result = reducePalette(colors, maximumColors)
+  const result = reducePalette(colors, maximumColors, true)
   expect(result.palette.length).toBeGreaterThanOrEqual(1)
   expect(result.palette.length).toBeLessThanOrEqual(maximumColors)
   expect(result.assignments).toHaveLength(colors.length)
@@ -15,11 +15,33 @@ function assertPalette(colors: readonly Rgb[], maximumColors = 8) {
       expect(colorDistance(rgbToLab(color), rgbToLab(other))).toBeGreaterThanOrEqual(MIN_COLOR_DISTANCE)
     })
   })
-  expect(reducePalette(colors, maximumColors)).toEqual(result)
+  expect(reducePalette(colors, maximumColors, true)).toEqual(result)
   return result
 }
 
 describe('perceptually separated palette', () => {
+  it('preserves pale details and similar shades by default when they fit the limit', () => {
+    const colors: Rgb[] = [[255, 255, 255], [230, 230, 230], [240, 225, 225], [245, 245, 245]]
+    const result = reducePalette(colors, 8)
+    expect(result.assignments.map(index => result.palette[index])).toEqual(colors)
+    expect(reducePalette(colors, 8, true).palette).toEqual([[255, 255, 255]])
+  })
+  it('still enforces color capacity when extra merging is disabled', () => {
+    const colors: Rgb[] = Array.from({ length: 256 }, (_, n) => [n, n, n])
+    const result = reducePalette(colors, 3, false)
+    expect(result.palette).toHaveLength(3)
+    expect(result.assignments).toHaveLength(colors.length)
+    expect(result.palette).toContainEqual([255, 255, 255])
+  })
+  it.each([1, 3, 8, 16])('preserves all similar shades at an exact capacity of %i', maximumColors => {
+    const colors: Rgb[] = Array.from({ length: 64 }, (_, index) => {
+      const shade = 240 + index % maximumColors
+      return [shade, shade, shade]
+    })
+    const result = reducePalette(colors, maximumColors)
+    expect(result.palette).toHaveLength(maximumColors)
+    expect(result.assignments.map(index => result.palette[index])).toEqual(colors)
+  })
   it('keeps a solid image to one color', () => {
     expect(assertPalette(Array.from({ length: 16 }, () => [120, 30, 50] as const)).palette).toEqual([[120, 30, 50]])
   })
