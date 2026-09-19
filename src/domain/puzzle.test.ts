@@ -47,8 +47,8 @@ describe('addition puzzles', () => {
     expect(Object.isFrozen(puzzle.settings.operators)).toBe(true)
   })
   it('supports a full size grid and a one-color image', () => {
-    const puzzle = createPuzzle({ rows: 24, columns: 64, palette: [[1, 2, 3]], assignments: Array(1536).fill(0) }, DEFAULT_SETTINGS, () => 0.999)
-    expect(puzzle.cells).toHaveLength(1536)
+    const puzzle = createPuzzle({ rows: 64, columns: 64, palette: [[1, 2, 3]], assignments: Array(4096).fill(0) }, DEFAULT_SETTINGS, () => 0.999)
+    expect(puzzle.cells).toHaveLength(4096)
     expect(puzzle.key).toHaveLength(1)
   })
   it('rejects malformed grids and invalid randomness', () => {

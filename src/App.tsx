@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { autoDimensions, dimensionError } from './domain/dimensions'
+import { autoDimensions, dimensionError, MAX_COLUMNS, MAX_ROWS } from './domain/dimensions'
 import { worksheetLayout } from './domain/layout'
 import { createPuzzle } from './domain/puzzle'
 import type { Puzzle } from './domain/puzzle'
@@ -102,18 +102,19 @@ function App() {
             <div className="dimension-fields">
               <div>
                 <label htmlFor="columns">Columns</label>
-                <input id="columns" type="number" min="4" max="64" step="1" disabled={printing || autoSize} value={autoSize ? autoGrid?.columns ?? '' : columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
+                <input id="columns" type="number" min="4" max={MAX_COLUMNS} step="1" disabled={printing || autoSize} value={autoSize ? autoGrid?.columns ?? '' : columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
                 <p className="field-error" id="columns-error">{columnsError}</p>
               </div>
               <span aria-hidden="true" className="dimension-cross">x</span>
               <div>
                 <label htmlFor="rows">Rows</label>
-                <input id="rows" type="number" min="4" max="24" step="1" disabled={printing || autoSize} value={autoSize ? autoGrid?.rows ?? '' : rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
+                <input id="rows" type="number" min="4" max={MAX_ROWS} step="1" disabled={printing || autoSize} value={autoSize ? autoGrid?.rows ?? '' : rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
                 <p className="field-error" id="rows-error">{rowsError}</p>
               </div>
             </div>
-            <p className="help" id="grid-help">4-24 rows and 4-64 columns. 24 columns best fits A4.</p>
+            <p className="help" id="grid-help">4-64 rows and columns. Stay within 24 x 24 for A4 with default arithmetic.</p>
             {!columnsError && gridColumns !== undefined && gridColumns > 24 && <p className="stale-notice" role="status">24 columns best fits A4. Choose larger paper for this wider grid; cells will not be shrunk.</p>}
+            {!rowsError && gridRows !== undefined && gridRows > 24 && <p className="stale-notice" role="status">24 rows best fits A4. Choose larger paper for this taller grid; cells will not be shrunk.</p>}
             <AdvancedSettings value={settingsDraft} disabled={printing} onChange={value => { changedInputs(); setSettingsDraft(value) }} />
             {invalidSettings && <p className="field-error" role="alert">Check the invalid options in Advanced before creating a puzzle.</p>}
             {!invalidSettings && effectiveColors < settings.maxColors && <p className="stale-notice" role="status">These math settings provide {resultCapacity} distinct answers, so the color limit is reduced to {effectiveColors}.</p>}

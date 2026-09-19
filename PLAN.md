@@ -689,8 +689,17 @@ own meaningful commit, following the same source-maintenance workflow as V1.
 ### V3 progress
 
 - [x] Record implementation approach before coding.
-- [ ] Align height and width limits, reviewed and committed.
+- [x] Align height and width limits, reviewed and committed.
 - [ ] Result controls and multiplication sign, reviewed and committed.
 - [ ] README, integrated validation, and final review committed.
 
 The existing user-owned `OIP.webp` remains untouched and untracked.
+
+### V3 height iteration
+
+Rows now share the 64-column maximum directly, expanding the existing image and
+palette guard to 4,096 cells. Added taller-grid advice before generation, kept
+auto size within 24 by 24, and verified restoring a manual 64-row value after
+toggling auto size. Independent sub-agent review found no significant issues.
+Passed 58 targeted domain tests, 12 browser cases, build, and lint, including
+complete 64-by-64 puzzle and answer-key PDFs on larger paper.

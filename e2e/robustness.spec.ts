@@ -150,6 +150,6 @@ test('keyboard focus is visible and dimensions report invalid values', async ({ 
   for (const value of ['', '3', '24.5']) {
     await rows.fill(value)
     await expect(rows).toHaveAttribute('aria-invalid', 'true')
-    await expect(page.locator('#rows-error')).toHaveText('Enter a whole number from 4 to 24.')
+    await expect(page.locator('#rows-error')).toHaveText('Enter a whole number from 4 to 64.')
   }
 })

@@ -46,13 +46,14 @@ describe('perceptually separated palette', () => {
     expect(() => reducePalette([[0, 0, 0]], 0)).toThrow()
   })
   it('uses configurable limits on maximum-sized grids without losing separation', () => {
-    const colors: Rgb[] = Array.from({ length: 1536 }, (_, n) => [n * 37 % 256, n * 71 % 256, n * 13 % 256])
+    const colors: Rgb[] = Array.from({ length: 4096 }, (_, n) => [n * 37 % 256, n * 71 % 256, n * 13 % 256])
     colors[0] = [255, 255, 255]
     for (const limit of [1, 3, 8, 16]) {
       const result = assertPalette(colors, limit)
       expect(result.palette).toContainEqual([255, 255, 255])
       if (limit === 16) expect(result.palette.length).toBeGreaterThan(8)
     }
+    expect(() => reducePalette([...colors, [0, 0, 0]])).toThrow('4096')
   })
   it('maintains separation on seeded varied palettes and arbitrary input order', () => {
     let seed = 123456

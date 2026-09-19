@@ -1,5 +1,5 @@
-export const MAX_ROWS = 24
 export const MAX_COLUMNS = 64
+export const MAX_ROWS = MAX_COLUMNS
 export const MAX_CELLS = MAX_ROWS * MAX_COLUMNS
 
 export function dimensionError(value: string, axis: 'rows' | 'columns' = 'rows'): string | null {
@@ -12,7 +12,7 @@ export function dimensionError(value: string, axis: 'rows' | 'columns' = 'rows')
 
 export function assertDimensions(rows: number, columns: number): void {
   if (dimensionError(String(rows)) || dimensionError(String(columns), 'columns')) {
-    throw new Error('Rows must be whole numbers from 4 to 24; columns from 4 to 64.')
+    throw new Error('Rows and columns must be whole numbers from 4 to 64.')
   }
 }
 
