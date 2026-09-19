@@ -306,3 +306,9 @@ commit uploaded images, `node_modules`, `.tools`, `dist`, PDFs, or test artifact
 
 Dependencies and browser binaries are downloaded during development setup.
 Processing a user's picture does not require any external service.
+
+## License
+
+MathDraw uses [The Coffeeware License (Revision 42)](LICENSE.md).
+Keep the license notice when reusing the code. If we meet and you find it useful,
+you can buy me a coffee.
