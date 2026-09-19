@@ -130,6 +130,8 @@ function App() {
             <p className="help" id="grid-help">{t.gridHelp}</p>
             {!columnsError && gridColumns !== undefined && gridColumns > 24 && <p className="stale-notice" role="status">{t.widerGrid}</p>}
             {!rowsError && gridRows !== undefined && gridRows > 24 && <p className="stale-notice" role="status">{t.tallerGrid}</p>}
+            <label className="toggle-field"><input type="checkbox" checked={settingsDraft.skipBackground} disabled={printing} aria-describedby="background-help" onChange={event => { changedInputs(); setSettingsDraft({ ...settingsDraft, skipBackground: event.target.checked }) }} />{t.skipBackground}</label>
+            <p className="help" id="background-help">{t.backgroundHelp}</p>
             <AdvancedSettings value={settingsDraft} disabled={printing} onChange={value => { changedInputs(); setSettingsDraft(value) }} />
             {invalidSettings && <p className="field-error" role="alert">{t.invalidAdvanced}</p>}
             {noResults && <p className="field-error" role="alert">{t.noResults}</p>}

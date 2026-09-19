@@ -33,6 +33,10 @@ export function AdvancedSettings({ value, onChange, disabled }: { value: Setting
         <p id="zero-result-help" className="help">{t.zeroResultHelp}</p>
         <label className="toggle-field"><input type="checkbox" checked={value.multiMap} onChange={event => onChange({ ...value, multiMap: event.target.checked })} aria-describedby="multimap-help" />{t.multiMap}</label>
         <p id="multimap-help" className="help">{t.multiMapHelp}</p>
+        <label htmlFor="max-results-per-color">{t.maxResultsPerColor}</label>
+        <input id="max-results-per-color" type="number" min="1" max="8" step="1" value={value.maxResultsPerColor} onChange={event => onChange({ ...value, maxResultsPerColor: event.target.value })} aria-invalid={Boolean(errors.maxResultsPerColor)} aria-describedby="results-per-color-help results-per-color-error" />
+        <p id="results-per-color-error" className="field-error">{errors.maxResultsPerColor}</p>
+        <p id="results-per-color-help" className="help">{t.resultsPerColorHelp}</p>
         <label htmlFor="max-colors">{t.maxColors}</label>
         <input id="max-colors" type="number" min="1" max="16" step="1" value={value.maxColors} onChange={event => onChange({ ...value, maxColors: event.target.value })} aria-invalid={Boolean(errors.maxColors)} aria-describedby="colors-help colors-error" />
         <p id="colors-error" className="field-error">{errors.maxColors}</p>

@@ -11,6 +11,8 @@ test('advanced settings are collapsed and use the configured defaults', async ({
   await expect(page.getByLabel('Subtraction (-)', { exact: true })).not.toBeChecked()
   await expect(page.getByLabel('Multiplication (\u00d7)', { exact: true })).not.toBeChecked()
   await expect(page.getByLabel('Multiple results per color')).toBeChecked()
+  await expect(page.getByLabel('Maximum results per color', { exact: true })).toHaveValue('3')
+  await expect(page.getByLabel('Skip near-white background')).not.toBeChecked()
   await expect(page.getByLabel('Maximum colors', { exact: true })).toHaveValue('8')
   await expect(page.getByLabel('Maximum result', { exact: true })).toHaveValue('99')
   await expect(page.getByLabel('Allow zero results')).not.toBeChecked()
@@ -122,6 +124,8 @@ test('all advanced changes invalidate old printouts and the expanded panel fits 
     () => page.getByLabel('Maximum operand', { exact: true }).fill('10'),
     () => page.getByLabel('Subtraction (-)', { exact: true }).check(),
     () => page.getByLabel('Multiple results per color').uncheck(),
+    () => page.getByLabel('Maximum results per color', { exact: true }).fill('8'),
+    () => page.getByLabel('Skip near-white background').check(),
     () => page.getByLabel('Maximum colors', { exact: true }).fill('3'),
     () => page.getByLabel('Allow zero operands').check(),
     () => page.getByLabel('Maximum result', { exact: true }).fill('5'),

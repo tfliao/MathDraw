@@ -27,4 +27,22 @@ describe('readable worksheet sizing', () => {
       cellMm: 12, widthMm: 768, heightMm: 396, paperWidthMm: 788, paperHeightMm: 416, needsLargerPaper: true,
     })
   })
+  it('gives all-background worksheets finite dimensions and no key space', () => {
+    const puzzle = createPuzzle({
+      rows: 24, columns: 24, palette: [[255, 255, 255]], assignments: Array(576).fill(0),
+    }, { ...DEFAULT_SETTINGS, skipBackground: true })
+    expect(worksheetLayout(puzzle)).toEqual({
+      cellMm: 7.5, widthMm: 180, heightMm: 220, paperWidthMm: 200, paperHeightMm: 240, needsLargerPaper: false,
+    })
+  })
+  it('expands sixteen-color keys to eight results without shrinking cells', () => {
+    const palette: Rgb[] = Array.from({ length: 16 }, (_, n) => [n * 15, 100, 50])
+    const puzzle = createPuzzle({
+      rows: 24, columns: 64, palette, assignments: Array.from({ length: 1536 }, (_, n) => n % 16),
+    }, { ...DEFAULT_SETTINGS, maxOperand: 99, maxResult: 9801, operators: ['*'], maxColors: 16, maxResultsPerColor: 8 }, () => .999)
+    expect(puzzle.key.every(entry => entry.results.length === 8)).toBe(true)
+    expect(worksheetLayout(puzzle)).toEqual({
+      cellMm: 12, widthMm: 768, heightMm: 496, paperWidthMm: 788, paperHeightMm: 516, needsLargerPaper: true,
+    })
+  })
 })

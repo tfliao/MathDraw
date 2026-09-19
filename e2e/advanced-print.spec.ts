@@ -20,6 +20,7 @@ test('large advanced worksheets retain expressions, grouped keys and readable ce
   await page.getByLabel('Subtraction (-)', { exact: true }).check()
   await page.getByLabel('Multiplication (\u00d7)', { exact: true }).check()
   await page.getByLabel('Multiple results per color').check()
+  await page.getByLabel('Maximum results per color', { exact: true }).fill('8')
   await page.getByRole('button', { name: 'Create puzzle' }).click()
   await expect(page.getByRole('table', { name: '24 by 64 math puzzle' })).toBeVisible()
   const problems = await page.locator('.app-shell .math-grid td').allTextContents()
@@ -29,7 +30,7 @@ test('large advanced worksheets retain expressions, grouped keys and readable ce
   expect(key.length).toBeGreaterThan(8)
   expect(key.length).toBeLessThanOrEqual(16)
   expect(key.some(entry => entry.results.some(result => result >= 1000))).toBe(true)
-  expect(key.every(entry => entry.results.length === 3)).toBe(true)
+  expect(key.every(entry => entry.results.length === 8)).toBe(true)
   await expect(page.getByText('Choose larger paper: this worksheet needs at least 788 mm', { exact: false })).toBeVisible()
 
   for (const mode of ['puzzle', 'answer key']) {
@@ -40,7 +41,7 @@ test('large advanced worksheets retain expressions, grouped keys and readable ce
     const sheet = page.locator('.print-root .worksheet')
     const bounds = (await sheet.boundingBox())!
     expect(bounds.width).toBeCloseTo(768 * 96 / 25.4, 0)
-    expect(bounds.height).toBeLessThan(396 * 96 / 25.4)
+    expect(bounds.height).toBeLessThan(496 * 96 / 25.4)
     if (mode === 'puzzle') {
       const cells = await sheet.locator('.math-grid td').evaluateAll(elements => elements.map(cell => ({
         width: cell.getBoundingClientRect().width, height: cell.getBoundingClientRect().height,
@@ -51,7 +52,7 @@ test('large advanced worksheets retain expressions, grouped keys and readable ce
     }
     const keyFits = await sheet.locator('.color-key td').evaluateAll(elements => elements.every(cell => cell.scrollWidth <= cell.clientWidth))
     expect(keyFits).toBe(true)
-    const bytes = await page.pdf({ width: '800mm', height: '440mm', printBackground: false, path: testInfo.outputPath(`${mode}.pdf`) })
+    const bytes = await page.pdf({ width: '800mm', height: '540mm', printBackground: false, path: testInfo.outputPath(`${mode}.pdf`) })
     const task = getDocument({ data: new Uint8Array(bytes) })
     const pdf = await task.promise
     try {
