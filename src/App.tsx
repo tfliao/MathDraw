@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { dimensionError } from './domain/dimensions'
+import { autoDimensions, dimensionError } from './domain/dimensions'
+import { worksheetLayout } from './domain/layout'
 import { createPuzzle } from './domain/puzzle'
 import type { Puzzle } from './domain/puzzle'
 import { processImage } from './image/process'
@@ -13,9 +14,13 @@ import './print.css'
 function App() {
   const [rows, setRows] = useState('20')
   const [columns, setColumns] = useState('16')
-  const rowsError = dimensionError(rows)
-  const columnsError = dimensionError(columns)
+  const [autoSize, setAutoSize] = useState(false)
+  const rowsError = autoSize ? null : dimensionError(rows)
+  const columnsError = autoSize ? null : dimensionError(columns, 'columns')
   const { image, loading, error: imageError, selectFile } = useImageInput()
+  const autoGrid = image ? autoDimensions(image.bitmap.width, image.bitmap.height) : null
+  const gridRows = autoSize ? autoGrid?.rows : Number(rows)
+  const gridColumns = autoSize ? autoGrid?.columns : Number(columns)
   const [snapshot, setSnapshot] = useState<{ puzzle: Puzzle; revision: number } | null>(null)
   const [view, setView] = useState<ViewMode>('puzzle')
   const [revision, setRevision] = useState(0)
@@ -26,6 +31,7 @@ function App() {
   const stale = snapshot !== null && snapshot.revision !== revision
   const { mode: printMode, printing, error: printError, print } = usePrint()
   const printReady = snapshot !== null && !stale && !busy && !generationError
+  const printLayout = snapshot ? worksheetLayout(snapshot.puzzle) : null
 
   useEffect(() => () => { request.current++ }, [])
 
@@ -37,7 +43,7 @@ function App() {
   }
 
   async function generate() {
-    if (!image || rowsError || columnsError) {
+    if (!image || rowsError || columnsError || gridRows === undefined || gridColumns === undefined) {
       setGenerationError('Choose a picture and valid grid dimensions first.')
       return
     }
@@ -48,7 +54,7 @@ function App() {
     await new Promise<void>(resolve => setTimeout(resolve, 30))
     if (id !== request.current) return
     try {
-      const grid = processImage(image, Number(rows), Number(columns))
+      const grid = processImage(image, gridRows, gridColumns)
       setSnapshot({ puzzle: createPuzzle(grid), revision })
       setView('puzzle')
     } catch (cause) {
@@ -83,20 +89,23 @@ function App() {
             </div>
             <p className="field-error" role="alert" id="image-error">{imageError}</p>
             <p className="field-label">2. Pick your grid</p>
+            <label className="toggle-field"><input type="checkbox" checked={autoSize} disabled={printing} onChange={event => { changedInputs(); setAutoSize(event.target.checked) }} />Auto size from picture</label>
+            {autoSize && <p className="help" role="status">{autoGrid ? `Auto size: ${autoGrid.columns} columns x ${autoGrid.rows} rows.` : 'Choose a picture to calculate the grid.'} Fits within 24 x 24 for A4.</p>}
             <div className="dimension-fields">
               <div>
                 <label htmlFor="columns">Columns</label>
-                <input id="columns" type="number" min="4" max="24" step="1" disabled={printing} value={columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
+                <input id="columns" type="number" min="4" max="64" step="1" disabled={printing || autoSize} value={autoSize ? autoGrid?.columns ?? '' : columns} onChange={event => { changedInputs(); setColumns(event.target.value) }} aria-invalid={Boolean(columnsError)} aria-describedby="grid-help columns-error" />
                 <p className="field-error" id="columns-error">{columnsError}</p>
               </div>
               <span aria-hidden="true" className="dimension-cross">x</span>
               <div>
                 <label htmlFor="rows">Rows</label>
-                <input id="rows" type="number" min="4" max="24" step="1" disabled={printing} value={rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
+                <input id="rows" type="number" min="4" max="24" step="1" disabled={printing || autoSize} value={autoSize ? autoGrid?.rows ?? '' : rows} onChange={event => { changedInputs(); setRows(event.target.value) }} aria-invalid={Boolean(rowsError)} aria-describedby="grid-help rows-error" />
                 <p className="field-error" id="rows-error">{rowsError}</p>
               </div>
             </div>
-            <p className="help" id="grid-help">4-24 in each direction. One page of possibilities.</p>
+            <p className="help" id="grid-help">4-24 rows and 4-64 columns. 24 columns best fits A4.</p>
+            {!columnsError && gridColumns !== undefined && gridColumns > 24 && <p className="stale-notice" role="status">24 columns best fits A4. Choose larger paper for this wider grid; cells will not be shrunk.</p>}
             <button className="primary-button" disabled={busy || printing || !image || Boolean(rowsError || columnsError)} onClick={() => void generate()}>{generating ? 'Creating your puzzle...' : 'Create puzzle'}</button>
             <p className="help status" role="status">{loading ? 'Opening your picture...' : generating ? 'Finding colors and making your grid...' : ''}</p>
             <p className="field-error" role="alert">{generationError}</p>
@@ -122,7 +131,8 @@ function App() {
                   <button disabled={!printReady || printing} onClick={() => void print('puzzle')}>Print puzzle</button>
                   <button disabled={!printReady || printing} onClick={() => void print('solution')}>Print answer key</button>
                 </div>
-                <p className="help print-help">One portrait A4 or Letter page. Print in color at 100% scale, with browser headers and footers off. Printer settings may change the layout and colors.</p>
+                {printLayout?.needsLargerPaper && <p className="stale-notice" role="status">Choose larger paper: this worksheet needs at least {printLayout.paperWidthMm} mm wide x {printLayout.paperHeightMm} mm tall, including margins. Keep 100% scale to preserve readable cells. Smaller paper may clip the puzzle.</p>}
+                <p className="help print-help">{printLayout?.needsLargerPaper ? 'Select paper and orientation large enough for the worksheet.' : 'One portrait A4 or Letter page.'} Print in color at 100% scale, with browser headers and footers off. Printer settings may change the layout and colors.</p>
                 {printing && <p className="print-status" role="status">Print dialog open or preparing. Close it to continue editing.</p>}
                 <p className="field-error" role="alert">{printError}</p>
               </div>

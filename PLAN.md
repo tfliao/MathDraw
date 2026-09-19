@@ -563,7 +563,7 @@ ignored `dist`; it can be served by a static web host.
 
 - [x] Discuss technical/behavioral choices with the user.
 - [x] Record the V2 plan in Git before implementation.
-- [ ] Auto sizing and wider readable worksheets, reviewed and committed.
+- [x] Auto sizing and wider readable worksheets, reviewed and committed.
 - [ ] Advanced arithmetic, multi-map, and palette controls, reviewed and committed.
 - [ ] Integrated validation, documentation, and final review committed.
 
@@ -571,3 +571,14 @@ ignored `dist`; it can be served by a static web host.
 
 An existing untracked `OIP.webp` was present at the beginning of this feature
 request. It is user-owned input and will not be modified, removed, or committed.
+
+### V2 sizing iteration review
+
+Auto sizing uses oriented bitmap dimensions, preserving manual entries across
+toggle changes. Width is bounded at 64, with a corresponding 1,536-cell pipeline
+limit. Printed cells remain 7.5 mm with 10 pt arithmetic; print content grows
+with the grid. Physical paper advice includes 10 mm margins on every edge.
+The user must select suitable paper and 100% scale; CSS no longer forces portrait
+orientation. Independent sub-agent review found no significant issues. Passed
+35 targeted domain tests, 26 browser/print cases, production build, and lint,
+including 64-column custom-paper PDFs and all existing A4/Letter print cases.

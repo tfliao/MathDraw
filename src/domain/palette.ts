@@ -1,5 +1,6 @@
 import { colorDistance, isWhite, rgbToLab, toHex } from './color'
 import type { Lab, Rgb } from './color'
+import { MAX_CELLS } from './dimensions'
 
 export const MIN_COLOR_DISTANCE = 25
 export const MAX_COLORS = 8
@@ -41,7 +42,7 @@ function representative(cluster: readonly Sample[]): Sample {
 }
 
 export function reducePalette(colors: readonly Rgb[]): Pick<ColorGrid, 'palette' | 'assignments'> {
-  if (colors.length === 0 || colors.length > 576) throw new Error('Provide between 1 and 576 cell colors.')
+  if (colors.length === 0 || colors.length > MAX_CELLS) throw new Error(`Provide between 1 and ${MAX_CELLS} cell colors.`)
   const unique = new Map<string, Sample>()
   for (const rgb of colors) {
     if (rgb.some(channel => !Number.isInteger(channel) || channel < 0 || channel > 255)) {

@@ -1,16 +1,20 @@
 import type { CSSProperties } from 'react'
 import type { Puzzle } from '../domain/puzzle'
 import { ColorPreview } from './ColorPreview'
+import { worksheetLayout } from '../domain/layout'
 
 export type ViewMode = 'puzzle' | 'solution'
 
 interface GridStyle extends CSSProperties {
   '--columns': number
   '--rows': number
+  '--print-width': string
+  '--cell-mm': string
 }
 
 export function Worksheet({ puzzle, mode }: { puzzle: Puzzle; mode: ViewMode }) {
-  const style: GridStyle = { '--columns': puzzle.columns, '--rows': puzzle.rows }
+  const layout = worksheetLayout(puzzle)
+  const style: GridStyle = { '--columns': puzzle.columns, '--rows': puzzle.rows, '--print-width': `${layout.widthMm}mm`, '--cell-mm': `${layout.cellMm}mm` }
   const keyRows = Array.from({ length: Math.ceil(puzzle.key.length / 4) }, (_, row) => puzzle.key.slice(row * 4, row * 4 + 4))
 
   return (

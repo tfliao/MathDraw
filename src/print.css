@@ -4,24 +4,24 @@
 .print-actions button:last-child { color: #245f54; background: white; }
 .print-help { margin-bottom: 0; }
 .print-status { font-size: 12px; margin-top: 12px; color: #54695d; }
-@page { size: portrait; margin: 10mm; }
+@page { size: auto; margin: 10mm; }
 
 @media print {
   :root { color: #000; background: #fff; }
   html, body, #root { margin: 0; padding: 0; min-width: 0; background: #fff; }
   .app-shell { display: none !important; }
-  .print-root { display: block; width: 180mm; margin: 0 auto; }
+  .print-root { display: block; width: max-content; margin: 0 auto; }
   .print-root * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-  .worksheet { width: 180mm; margin: 0; padding: 0; break-inside: avoid; }
+  .worksheet { width: var(--print-width); margin: 0; padding: 0; break-inside: avoid; }
   .worksheet-heading { padding-bottom: 2mm; gap: 3mm; }
   .worksheet-brand { font-size: 7pt; margin-bottom: 1.5mm; }
   .worksheet-heading h2 { font-size: 17pt; line-height: 1.15; }
   .name-line { font-size: 9pt; }
   .worksheet-instructions { font-size: 9pt; line-height: 1.4; margin: 0 0 3mm; }
-  .worksheet-grid { width: calc(var(--columns) * 7.5mm); margin: 0 auto; break-inside: avoid; }
+  .worksheet-grid { width: calc(var(--columns) * var(--cell-mm)); margin: 0 auto; break-inside: avoid; }
   .math-grid { border: .2mm solid #555; }
-  .math-grid td { height: 7.5mm; padding: 0; border: .2mm solid #777; font-size: 10pt; line-height: 1; }
-  .worksheet .color-preview { width: 100%; height: calc(var(--rows) * 7.5mm); max-height: none; border: .2mm solid #555; }
+  .math-grid td { height: var(--cell-mm); padding: 0; border: .2mm solid #777; font-size: 10pt; line-height: 1; }
+  .worksheet .color-preview { width: 100%; height: calc(var(--rows) * var(--cell-mm)); max-height: none; border: .2mm solid #555; }
   .color-key { margin-top: 3mm; break-inside: avoid; }
   .color-key caption { font-size: 10pt; padding-bottom: 1mm; }
   .color-key caption span { font-size: 8pt; }
