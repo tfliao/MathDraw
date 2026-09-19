@@ -1,5 +1,9 @@
 # MathDraw implementation plan
 
+This is a historical implementation and decision record. For current instructions,
+start with [README](README.md), the [user guide](USAGE.md), or
+[contributor guidance](CONTRIBUTING.md). Earlier sections retain their original scope.
+
 Status: V1, V2, and V3 complete. All implementation iterations independently reviewed and committed.
 
 The V2 section below supersedes V1 limits where explicitly noted. V1 sections
@@ -866,3 +870,33 @@ Browser coverage includes English and Taiwan Chinese background puzzle/solution
 PDFs, eight-result keys with up to sixteen colors on larger paper, a blank-grid
 PDF, existing A4/Letter print cases, mobile layouts, locale persistence, stale
 printing, and opt-outs. The rebuilt local preview includes the feature.
+
+## 17. Documentation organization
+
+Start `docs/reorganize-guides` from freshly fetched `origin/master` at 038a6cc,
+including merged PR #2. Follow the existing feature-branch/local-review/PR process.
+
+Following the referenced guide to common repository documents, the user approved
+a short `README.md` plus dedicated `USAGE.md`, `CONTRIBUTING.md`, and `SUPPORT.md`.
+Reference: [Common repository special files](https://gist.github.com/jakebrinkmann/c63eaedbe384516e4a7bc133c1e1066b).
+
+- Keep the introduction, requirements, quick start, documentation links, and
+  existing license reference in README.
+- Move full puzzle/language/options/background/color/print instructions to USAGE.
+- Move developer setup, optional portable runtime, build/preview commands, tests,
+  architecture, invariants, translation maintenance, and branch/PR rules to
+  CONTRIBUTING.
+- Provide application/local-development troubleshooting and issue-reporting
+  guidance in SUPPORT, without introducing a new support service.
+- Remove the GitHub deployment guide rather than relocating it. Do not change
+  the existing deployment workflow.
+- Retain LICENSE unchanged and this historical decision log. Skip a new changelog
+  without an established versioned release history, and do not invent contributor
+  lists, copyright-holder lists, acknowledgments, or community policies.
+- Review preserved content, command accuracy, relative links and heading anchors.
+  This documentation-only change does not require application builds or tests.
+
+The independent local review found no significant issues. Checked all 26 relative
+documentation links and anchors, confirmed the documented npm scripts and enabled
+GitHub issue channel, and verified that application files, dependency manifests,
+LICENSE, and the deployment workflow are unchanged.
