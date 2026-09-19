@@ -19,6 +19,7 @@ export const zhTW: Messages = {
   imageHelp: '支援 PNG、JPG 或 WebP，檔案上限 10 MiB。',
   simplePictures: '圖案簡單的圖片效果最好。',
   originalPicture: (name: string) => `原始圖片：${name}`,
+  imageDimensions: (width: number, height: number) => `原始圖片：寬 ${width} 像素 × 高 ${height} 像素。`,
   pickGrid: '2. 設定格數',
   autoSize: '依圖片自動設定格數',
   autoSizeValue: (columns: number, rows: number) => `自動格數：${columns} 欄 × ${rows} 列。`,

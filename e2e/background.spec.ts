@@ -68,7 +68,7 @@ for (const language of ['en', 'zh-TW'] as const) {
           expect(fills[index]).toBe(key.find(entry => entry.results.includes(result))?.color)
         }
       })
-      expect(fills[24]).toBe('#f5f8fa')
+      expect(fills[24]).toBe('#ffffff')
       await page.getByRole('button', { name: t.puzzle, exact: true }).click()
       expect(await grid.locator('td').allTextContents()).toEqual(problems)
 

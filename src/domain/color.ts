@@ -31,3 +31,7 @@ export function toHex(rgb: Rgb): string {
 export function isWhite(rgb: Rgb): boolean {
   return rgb.every(channel => channel === 255)
 }
+
+export function isNearWhite(rgb: Rgb): boolean {
+  return rgb.every(channel => channel >= 240)
+}

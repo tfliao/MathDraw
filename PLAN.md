@@ -941,3 +941,37 @@ runs, including the new dominant-shade fixture, background behavior, actual
 single-page A4/Letter PDFs, large multi-map keys, and maximum-size grids.
 Production build, type checking, and lint pass. The local preview serves the
 rebuilt experiment; only the experiment branch will be pushed for PR review.
+
+## 19. Foreground-dominant sampling and image dimensions
+
+Start `experiment/foreground-cell-colors` from freshly fetched `origin/master`
+at 8e92f8f. The first experiment (PR #4) is unmerged, so carry its two reviewed
+commits onto this separate branch before extending it. Leave master and PR #4
+unchanged so the user can compare experiments.
+
+- The user confirmed ignoring **all near-white samples**, not only those
+  connected to image edges. Exclude samples whose RGB channels are all >= 240
+  before choosing the dominant bucket and its most frequent actual foreground
+  color. If no foreground sample remains, return exact white.
+- Reuse one near-white predicate for this sampler and the existing background
+  detector. Sampling is separate from "Skip near-white background": it excludes
+  near-white samples regardless of that toggle, while omitting math problems
+  still uses edge-connected regions of the final grid.
+- A tiny dark/colored mark can now determine a mostly white cell. Noise and
+  antialiased edge samples can be amplified; record this experimental tradeoff.
+  Canvas resizing and the downstream global palette remain unchanged.
+- After successful image decoding, show original width and height in pixels
+  beneath the image preview, with explicit width/height labels in both languages.
+  Use the EXIF-oriented bitmap dimensions, not the reduced preview dimensions.
+  Replacement, clearing, and failure must not leave stale dimensions displayed.
+- Keep auto/manual grid behavior and limits unchanged. Dimensions are reference
+  information for choosing a proportional manual grid, not an automatic copy
+  of a potentially enormous pixel resolution.
+
+The independent local review found no significant issues. Passed 94 targeted
+color/sampling/background/palette/locale unit tests and 61 browser cases across
+focused runs, including actual foreground selection, white-only fallback,
+original versus thumbnail dimensions, EXIF orientation, image replacement and
+failure cleanup, both languages, mobile layout, and existing print/large-grid
+flows. Build, type checking, and lint pass. The local preview serves this second
+experiment; the first experiment branch and PR remain unchanged.

@@ -20,6 +20,12 @@ Changing any generation option keeps the previous preview but disables printing
 until you generate again. Pictures and puzzles are not saved across page reloads;
 save a PDF if you want to keep a puzzle.
 
+After the image loads, its original **width and height in pixels** appear below
+the preview. These are the decoded image dimensions, with JPEG orientation
+applied, not the smaller preview dimensions. Use their proportions to choose a
+manual grid within the 4-64 row/column limits; the display does not change your
+manual grid values.
+
 ## Language
 
 Use **Language / 語言** near the top of the page to select **English** or
@@ -79,18 +85,26 @@ The full image is fitted without cropping or stretching. White margins are added
 when necessary, and transparency is composited onto white. White counts as a
 palette color and is labeled **Leave white** when it has problems in the color key.
 
-### Experimental dominant cell colors
+### Experimental foreground-dominant cell colors
 
-On this experiment branch, each cell uses its dominant shade group instead of
-averaging all its samples. The 16 by 16 samples are grouped into RGB buckets
-spanning 16 levels per channel. The largest group wins; its most frequent actual
-sampled color represents the cell. Equal counts use numeric RGB order for stable
-results, not the order pixels are visited.
+On this experiment branch, each cell first ignores all near-white samples
+(every RGB channel at least 240), whether or not they connect to an image edge.
+The remaining samples are grouped into RGB buckets spanning 16 levels per channel.
+The largest group wins; its most frequent actual sampled color represents the
+cell. A cell with no remaining samples becomes pure white. Sampling still uses
+16 by 16 samples per cell. Equal counts use numeric RGB order for stable results,
+not the order pixels are visited.
 
-This avoids mixing a large region with a small contrasting detail, but that detail
-may disappear. Similar shades on opposite bucket boundaries can split into
-different groups. Browser resizing can still blend source pixels before this
-step. The later image-wide CIELAB palette selection and color limits are unchanged.
+Even one non-background sample can now determine a mostly white cell, preserving
+small marks but also amplifying noise and antialiased edges. Minority details
+among competing foreground groups can still disappear. Similar shades on opposite
+bucket boundaries can split into different groups. Browser resizing can still
+blend source pixels before this step. The later image-wide CIELAB palette selection
+and color limits are unchanged.
+
+This sampling experiment applies regardless of **Skip near-white background**.
+That separate toggle controls whether edge-connected near-white cells in the
+finished grid get math problems; it does not control sample exclusion.
 
 ### Skipping backgrounds
 

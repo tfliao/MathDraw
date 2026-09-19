@@ -26,11 +26,28 @@ describe('image sampling', () => {
   ])('fits %s by %s without cropping', (width, height, expected) => {
     expect(fitImage(width, height, 100, 100)).toEqual(expected)
   })
-  it('selects the dominant area instead of blending a minority detail into it', () => {
+  it('ignores a white majority and preserves even one foreground sample', () => {
     const white: Rgb = [255, 255, 255]
     const black: Rgb = [0, 0, 0]
-    const colors = sampleCells(cellSamples([[white, white, white, black]], 2), 4, 4, 2)
-    expect(colors).toEqual(Array(16).fill(white))
+    const patch = [...Array<Rgb>(255).fill(white), black]
+    const colors = sampleCells(cellSamples([patch], 16), 4, 4)
+    expect(colors).toEqual(Array(16).fill(black))
+  })
+  it('ignores near-white shades too and uses exact white only when no foreground remains', () => {
+    const background: Rgb[] = [[240, 240, 240], [255, 240, 250], [255, 255, 255]]
+    expect(sampleCells(cellSamples([background], 2), 4, 4, 2)).toEqual(Array(16).fill([255, 255, 255]))
+    const foreground: Rgb = [239, 255, 255]
+    expect(sampleCells(cellSamples([[...background, foreground]], 2), 4, 4, 2)).toEqual(Array(16).fill(foreground))
+  })
+  it('selects the dominant group among remaining foreground shades', () => {
+    const red: Rgb = [224, 32, 32]
+    const patch: Rgb[] = [
+      ...Array<Rgb>(180).fill([250, 250, 250]),
+      ...Array<Rgb>(24).fill(red),
+      ...Array<Rgb>(24).fill([225, 33, 33]),
+      ...Array<Rgb>(28).fill([0, 0, 255]),
+    ]
+    expect(sampleCells(cellSamples([patch], 16), 4, 4)).toEqual(Array(16).fill(red))
   })
   it('combines similar shades even when another exact color is more frequent', () => {
     const reds: Rgb[] = [[224, 32, 32], [225, 33, 33], [226, 34, 34], [227, 35, 35]]
@@ -46,11 +63,11 @@ describe('image sampling', () => {
   })
   it('resolves equal group and representative counts consistently across traversal orders', () => {
     const black: Rgb = [0, 0, 0]
-    const white: Rgb = [255, 255, 255]
+    const blue: Rgb = [0, 0, 255]
     const red: Rgb = [224, 32, 32]
     const similar: Rgb = [225, 33, 33]
     for (const [patch, expected] of [
-      [[white, black, white, black], black],
+      [[blue, black, blue, black], black],
       [[similar, red, similar, red], red],
     ] satisfies [Rgb[], Rgb][]) {
       const forward = sampleCells(cellSamples([patch], 2), 4, 4, 2)

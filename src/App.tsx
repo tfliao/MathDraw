@@ -108,7 +108,10 @@ function App() {
               <span className="upload-icon" aria-hidden="true">+</span>
               <input id="image" type="file" accept="image/png,image/jpeg,image/webp" disabled={printing} aria-describedby="image-help image-error" aria-invalid={Boolean(imageError)} onChange={event => { changedInputs(); void selectFile(event.target.files?.[0]) }} />
               <p id="image-help">{t.imageHelp}<br />{t.simplePictures}</p>
-              {image && <img className="source-preview" src={image.previewUrl} alt={t.originalPicture(image.name)} />}
+              {image && <>
+                <img className="source-preview" src={image.previewUrl} alt={t.originalPicture(image.name)} aria-describedby="image-dimensions" />
+                <p id="image-dimensions" role="status">{t.imageDimensions(image.bitmap.width, image.bitmap.height)}</p>
+              </>}
             </div>
             <p className="field-error" role="alert" id="image-error">{imageError && t[imageError.code]}</p>
             <p className="field-label">{t.pickGrid}</p>

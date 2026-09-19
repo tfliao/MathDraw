@@ -1,8 +1,9 @@
 import type { ColorGrid } from './palette'
+import { isNearWhite } from './color'
 
 // The caller validates the final, simplified grid before finding its background.
 export function backgroundMask(grid: ColorGrid): readonly boolean[] {
-  const nearWhite = grid.palette.map(color => color.every(channel => channel >= 240))
+  const nearWhite = grid.palette.map(isNearWhite)
   const mask = Array<boolean>(grid.assignments.length).fill(false)
   const pending: number[] = []
   function visit(index: number) {

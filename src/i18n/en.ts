@@ -17,6 +17,7 @@ export const en = {
   imageHelp: 'PNG, JPG, or WebP. Up to 10 MiB.',
   simplePictures: 'Simple pictures work best.',
   originalPicture: (name: string) => `Original picture: ${name}`,
+  imageDimensions: (width: number, height: number) => `Original image: width ${width} px × height ${height} px.`,
   pickGrid: '2. Pick your grid',
   autoSize: 'Auto size from picture',
   autoSizeValue: (columns: number, rows: number) => `Auto size: ${columns} columns x ${rows} rows.`,
