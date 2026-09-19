@@ -87,7 +87,13 @@ palette color and is labeled **Leave white** when it has problems in the color k
 
 ### Experimental foreground-dominant cell colors
 
-On this experiment branch, each cell first ignores all near-white samples
+When the original image width/height exactly match the grid columns/rows,
+each white-composited source pixel goes directly to its corresponding cell,
+without resizing or foreground voting. For example, a 22 by 24 pixel image
+uses 22 columns and 24 rows. Palette simplification still applies: excess colors
+or similar shades can change even when pixel positions are preserved.
+
+For other sizes on this experiment branch, each cell first ignores all near-white samples
 (every RGB channel at least 240), whether or not they connect to an image edge.
 The remaining samples are grouped into RGB buckets spanning 16 levels per channel.
 The largest group wins; its most frequent actual sampled color represents the
@@ -98,9 +104,11 @@ not the order pixels are visited.
 Even one non-background sample can now determine a mostly white cell, preserving
 small marks but also amplifying noise and antialiased edges. Minority details
 among competing foreground groups can still disappear. Similar shades on opposite
-bucket boundaries can split into different groups. Browser resizing can still
-blend source pixels before this step. The later image-wide CIELAB palette selection
-and color limits are unchanged.
+bucket boundaries can split into different groups. Enlarging into the sampling
+canvas uses nearest-neighbor scaling to avoid inventing blurred foreground edges.
+Actual shrinking into that canvas still uses browser smoothing, which can blend
+source pixels before sampling. The later image-wide CIELAB palette selection and
+color limits are unchanged.
 
 This sampling experiment applies regardless of **Skip near-white background**.
 That separate toggle controls whether edge-connected near-white cells in the

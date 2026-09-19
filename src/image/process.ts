@@ -1,4 +1,5 @@
 import { assertDimensions } from '../domain/dimensions'
+import type { Rgb } from '../domain/color'
 import { reducePalette } from '../domain/palette'
 import type { ColorGrid } from '../domain/palette'
 import { fitImage, sampleCells, SAMPLES_PER_CELL } from '../domain/sampling'
@@ -73,9 +74,16 @@ export async function loadImage(file: File): Promise<LoadedImage> {
 export function processImage(image: LoadedImage, rows: number, columns: number, maximumColors = DEFAULT_MAX_COLORS): ColorGrid {
   assertDimensions(rows, columns)
   validateImageDimensions(image.bitmap.width, image.bitmap.height)
-  const { canvas, context } = makeCanvas(columns * SAMPLES_PER_CELL, rows * SAMPLES_PER_CELL)
+  const sameSize = image.bitmap.width === columns && image.bitmap.height === rows
+  const samples = sameSize ? 1 : SAMPLES_PER_CELL
+  const { canvas, context } = makeCanvas(columns * samples, rows * samples)
   const fit = fitImage(image.bitmap.width, image.bitmap.height, canvas.width, canvas.height)
+  // Artificial enlargement must not invent foreground fringes around source pixels.
+  context.imageSmoothingEnabled = fit.width < image.bitmap.width
   context.drawImage(image.bitmap, fit.x, fit.y, fit.width, fit.height)
-  const colors = sampleCells(context.getImageData(0, 0, canvas.width, canvas.height).data, rows, columns)
+  const data = context.getImageData(0, 0, canvas.width, canvas.height).data
+  const colors = sameSize
+    ? Array.from({ length: rows * columns }, (_, index): Rgb => [data[index * 4], data[index * 4 + 1], data[index * 4 + 2]])
+    : sampleCells(data, rows, columns)
   return { rows, columns, ...reducePalette(colors, maximumColors) }
 }

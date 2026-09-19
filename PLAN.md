@@ -975,3 +975,74 @@ original versus thumbnail dimensions, EXIF orientation, image replacement and
 failure cleanup, both languages, mobile layout, and existing print/large-grid
 flows. Build, type checking, and lint pass. The local preview serves this second
 experiment; the first experiment branch and PR remain unchanged.
+
+## 20. Same-size image fidelity and resizing research
+
+Continue `experiment/foreground-cell-colors` and update existing PR #5. The user
+has changed the workflow: do not open a PR for every follow-up request; create
+the next PR only after the preceding PR has merged. Record the current rule in
+CONTRIBUTING without rewriting the earlier experimental history or closing PRs.
+
+### Reproduction and fix
+
+No original problem image was supplied. Generated 22-by-24 PNGs with isolated
+pixels, thin lines, checkerboard details, and four well-separated colors reproduce
+the issue without palette-capacity ambiguity. Before the fix, 50 of 528 cells
+differ from the opaque source, and the transparent-background version has the
+same failure. Two-times enlargement changes 184 cells; a padded grid also fails.
+A solid near-white source becomes white despite requesting unchanged dimensions.
+
+The processing canvas always enlarged the image to 16 samples per cell with
+smoothing enabled, even for an unchanged grid. Interpolation invented edge
+colors; ignoring near-white samples then amplified remaining foreground fringes.
+The preview thumbnail is not the processing source.
+
+- If decoded image dimensions exactly match the grid, composite transparency
+  onto white at original size and use those pixels directly, bypassing both the
+  artificial enlargement and foreground-voting normalization.
+- For other sizes, retain the bounded 16-by-16 sampling canvas and aspect fitting.
+  Disable smoothing when enlarging or copying into that canvas. Retain browser
+  smoothing when genuinely shrinking into it; do not allocate a full-resolution
+  canvas for large source images.
+- Keep the foreground experiment for actual resizing, image limits, background
+  skipping, and global palette reduction. Color/result capacity and the existing
+  minimum CIE76 distance of 25 may still change colors, including in same-size
+  images. Do not promise identical output when palette constraints require merges.
+
+### Resizing research and recommendation
+
+There is no universally best reducer: preserving discrete pixel art, retaining
+tiny foreground marks, and reducing photographic aliasing are different goals.
+
+| Approach | Suitability and tradeoff |
+| --- | --- |
+| Direct pixel copy | Correct starting point for unchanged dimensions; no resize filter is needed |
+| Nearest neighbor | Preserves hard edges and source colors when enlarging pixel art; shrinking can miss thin details and alias |
+| Area/box reduction | Good baseline for shrinking photographs by combining contributing pixels; blends colors and can weaken small foreground marks |
+| Lanczos / Pica's default MKS2013 | Candidates for sharper photographic reductions; sharp filters can introduce ringing/halos and still do not preserve discrete source colors |
+| Foreground-dominant sampling | Retains small marks on near-white backgrounds, but can amplify noise and sacrifice minority foreground colors |
+
+Primary references:
+
+- [MDN: imageSmoothingEnabled](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/imageSmoothingEnabled)
+  documents default smoothing and disabling it to retain enlarged pixel-art edges.
+- [OpenCV: geometric transformations](https://docs.opencv.org/4.13.0/da/d6e/tutorial_py_geometric_transformations.html)
+  recommends INTER_AREA for shrinking images.
+- [Pillow: filters](https://pillow.readthedocs.io/en/stable/handbook/concepts.html#filters)
+  distinguishes nearest, box, bilinear, bicubic, Hamming, and Lanczos resampling.
+- [Pica](https://github.com/nodeca/pica)
+  provides browser-side tiled JS/WASM resizing; its default is MKS2013, not area
+  averaging, and browser createImageBitmap resizing is disabled by default.
+
+Implement the demonstrated copy/enlargement fix now, without adding a dependency
+or replacing photo reduction on an unmeasured recommendation. A future comparison
+should measure thin-detail retention, aliasing, halos, palette stability, and
+runtime on both pixel art and photographs before adopting area or sharper filters.
+
+Independent local review found no significant issues. All five new browser
+regressions failed before the fix and pass afterward, with zero differing cells
+in the controlled identity, enlargement, and padding fixtures. Passed 49 targeted
+sampling/palette/background/image unit tests and 43 browser cases covering image
+processing, dimensions, background behavior, large grids, and A4/Letter PDFs.
+Production build, type checking, and lint pass. No new resampling dependency,
+palette-policy change, or new PR is introduced.

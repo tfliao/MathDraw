@@ -28,7 +28,11 @@ $env:PATH = "$nodeDirectory;$env:PATH"
 
 ## Branch and pull request workflow
 
-Start each feature or documentation change from the latest remote default branch.
+Do not create a new pull request for every follow-up request. While the current
+PR is open, continue on its branch and push follow-up commits to that same PR.
+Create the next PR only after the preceding PR has been merged.
+
+When beginning that next branch, start from the latest remote default branch.
 This repository's default branch is named `master`. Save any existing work before
 switching branches; do not overwrite unrelated changes.
 
@@ -146,6 +150,9 @@ separate text items or equivalent radicals.
   the most frequent actual sample from the largest 16-level RGB bucket per cell.
   Use white if no foreground remains. Share the near-white predicate with background
   detection, retain deterministic ties, and test the image-to-palette pipeline.
+- For images matching grid dimensions exactly, bypass foreground voting and copy
+  white-composited source pixels before palette reduction. Never smooth artificial
+  enlargement into the sampling canvas; retain smoothing for actual shrinking.
 - Respect current grid/image limits; release old bitmaps and object URLs, and
   discard stale asynchronous work.
 - Reuse `Worksheet` for screen and print. Keep readable cell/font sizes, and
