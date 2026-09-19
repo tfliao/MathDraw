@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Rgb } from './color'
-import { createPuzzle } from './puzzle'
+import { createPuzzle, isProblemCell } from './puzzle'
 import { answer, buildProblemPool, DEFAULT_SETTINGS, OPERATORS } from './settings'
 import type { ColorGrid } from './palette'
 
@@ -28,6 +28,8 @@ describe('addition puzzles', () => {
     expect(new Set(puzzle.key.flatMap(entry => entry.results)).size).toBe(8)
     expect(puzzle.key.map(entry => entry.results[0])).toEqual(puzzle.key.map(entry => entry.results[0]).sort((a, b) => a - b))
     puzzle.cells.forEach((cell, index) => {
+      expect(isProblemCell(cell)).toBe(true)
+      if (!isProblemCell(cell)) throw new Error('Expected arithmetic')
       const entry = puzzle.key.find(entry => entry.results.includes(answer(cell)))!
       expect(entry.colorIndex).toBe(grid.assignments[index])
       expect(entry.color).toEqual(grid.palette[cell.colorIndex])
@@ -38,7 +40,7 @@ describe('addition puzzles', () => {
     const puzzle = createPuzzle(grid)
     expect(puzzle.settings.multiMap).toBe(true)
     expect(puzzle.key.every(entry => entry.results.length === 2)).toBe(true)
-    expect(new Set(puzzle.cells.map(answer))).toEqual(new Set(puzzle.key.flatMap(entry => entry.results)))
+    expect(new Set(puzzle.cells.filter(isProblemCell).map(answer))).toEqual(new Set(puzzle.key.flatMap(entry => entry.results)))
   })
   it('deep freezes the snapshot and copies caller-owned arrays', () => {
     const puzzle = createPuzzle(grid, DEFAULT_SETTINGS, () => 0)
@@ -69,9 +71,10 @@ describe('addition puzzles', () => {
     expect(new Set(puzzle.key.flatMap(entry => entry.results)).size).toBe(24)
     puzzle.key.forEach(entry => {
       expect(entry.results).toEqual([...entry.results].sort((a, b) => a - b))
-      expect(new Set(puzzle.cells.filter(cell => cell.colorIndex === entry.colorIndex).map(answer))).toEqual(new Set(entry.results))
+      expect(new Set(puzzle.cells.filter(isProblemCell).filter(cell => cell.colorIndex === entry.colorIndex).map(answer))).toEqual(new Set(entry.results))
     })
     puzzle.cells.forEach(cell => {
+      if (!isProblemCell(cell)) throw new Error('Expected arithmetic')
       expect(cell.a).toBeGreaterThanOrEqual(1)
       expect(cell.b).toBeGreaterThanOrEqual(1)
       expect(cell.a).toBeLessThanOrEqual(99)
@@ -88,7 +91,7 @@ describe('addition puzzles', () => {
   it('supports a zero-only subtraction puzzle without zero operands', () => {
     const puzzle = createPuzzle({ rows: 4, columns: 4, palette: [[0, 0, 0]], assignments: Array(16).fill(0) }, { ...DEFAULT_SETTINGS, operators: ['-'], maxResult: 0, allowZeroResults: true, multiMap: true })
     expect(puzzle.key[0].results).toEqual([0])
-    expect(puzzle.cells.every(cell => cell.a === cell.b && cell.a > 0)).toBe(true)
+    expect(puzzle.cells.every(cell => isProblemCell(cell) && cell.a === cell.b && cell.a > 0)).toBe(true)
     expect(puzzle.settings.maxResult).toBe(0)
     expect(puzzle.settings.allowZeroResults).toBe(true)
   })
@@ -121,9 +124,10 @@ describe('addition puzzles', () => {
             const puzzle = createPuzzle({ ...grid, palette: colors.slice(0, count), assignments: Array.from({ length: 16 }, (_, n) => n % count) }, settings, random)
             const results = puzzle.key.flatMap(entry => entry.results)
             expect(new Set(results).size).toBe(results.length)
-            expect(new Set(puzzle.cells.map(answer))).toEqual(new Set(results))
+            expect(new Set(puzzle.cells.filter(isProblemCell).map(answer))).toEqual(new Set(results))
             puzzle.key.forEach(entry => expect(entry.results.length).toBeLessThanOrEqual(multiMap ? 3 : 1))
             puzzle.cells.forEach(cell => {
+              if (!isProblemCell(cell)) throw new Error('Expected arithmetic')
               expect(settings.operators).toContain(cell.operator)
               expect(cell.a).toBeGreaterThanOrEqual(allowZero ? 0 : 1)
               expect(cell.b).toBeGreaterThanOrEqual(allowZero ? 0 : 1)
@@ -137,5 +141,102 @@ describe('addition puzzles', () => {
         }
       }
     }
+  })
+})
+
+describe('configurable result allocation', () => {
+  const abundant: ColorGrid = {
+    rows: 8, columns: 8, palette: colors.slice(0, 3),
+    assignments: Array.from({ length: 64 }, (_, index) => index % 3),
+  }
+  it.each([1, 3, 8])('allocates up to %s unique results and schedules every one', maxResultsPerColor => {
+    const puzzle = createPuzzle(abundant, { ...DEFAULT_SETTINGS, maxOperand: 99, maxResultsPerColor }, () => .4)
+    const results = puzzle.key.flatMap(entry => entry.results)
+    expect(new Set(results).size).toBe(3 * maxResultsPerColor)
+    for (const entry of puzzle.key) {
+      expect(entry.results).toHaveLength(maxResultsPerColor)
+      expect(new Set(puzzle.cells.filter(isProblemCell).filter(cell => cell.colorIndex === entry.colorIndex).map(answer))).toEqual(new Set(entry.results))
+    }
+  })
+  it('keeps single-result mode at one even with a cap of eight', () => {
+    const puzzle = createPuzzle(abundant, { ...DEFAULT_SETTINGS, multiMap: false, maxResultsPerColor: 8 })
+    expect(puzzle.key.every(entry => entry.results.length === 1)).toBe(true)
+  })
+  it('fairly shares scarce answers round-robin at a cap of eight', () => {
+    const puzzle = createPuzzle(abundant, { ...DEFAULT_SETTINGS, maxResultsPerColor: 8 }, () => .5)
+    const lengths = puzzle.key.map(entry => entry.results.length)
+    expect(lengths.reduce((sum, count) => sum + count, 0)).toBe(17)
+    expect(Math.max(...lengths) - Math.min(...lengths)).toBeLessThanOrEqual(1)
+    expect(new Set(puzzle.cells.filter(isProblemCell).map(answer))).toEqual(new Set(puzzle.key.flatMap(entry => entry.results)))
+  })
+  it('limits rare colors to their cell counts with eight results requested', () => {
+    const puzzle = createPuzzle({
+      rows: 4, columns: 4, palette: colors.slice(0, 3), assignments: [0, 1, 1, ...Array(13).fill(2)],
+    }, { ...DEFAULT_SETTINGS, maxResultsPerColor: 8 })
+    expect([0, 1, 2].map(color => puzzle.key.find(entry => entry.colorIndex === color)?.results.length)).toEqual([1, 2, 8])
+  })
+})
+
+describe('edge-connected background cells', () => {
+  const white: ColorGrid = { rows: 4, columns: 4, palette: [[255, 255, 255]], assignments: Array(16).fill(0) }
+  it('preserves white arithmetic when background skipping is disabled', () => {
+    const puzzle = createPuzzle(white, DEFAULT_SETTINGS, () => .5)
+    expect(puzzle.cells.every(isProblemCell)).toBe(true)
+    expect(puzzle.key[0].hex).toBe('#ffffff')
+    expect(puzzle.key[0].results).toHaveLength(3)
+  })
+  it('makes all-background snapshots without arithmetic, answers, or randomness', () => {
+    const random = vi.fn(() => { throw new Error('Unexpected random call') })
+    const puzzle = createPuzzle(white, { ...DEFAULT_SETTINGS, skipBackground: true }, random)
+    expect(puzzle.cells).toEqual(Array.from({ length: 16 }, () => ({ kind: 'background', colorIndex: 0 })))
+    expect(puzzle.key).toEqual([])
+    expect(random).not.toHaveBeenCalled()
+    expect(puzzle.palette).toEqual(white.palette)
+    expect(puzzle.assignments).toEqual(white.assignments)
+    expect(puzzle.palette).not.toBe(white.palette)
+    expect(puzzle.assignments).not.toBe(white.assignments)
+    for (const value of [puzzle, puzzle.cells, ...puzzle.cells, puzzle.key, puzzle.palette, ...puzzle.palette, puzzle.assignments, puzzle.settings, puzzle.settings.operators]) {
+      expect(Object.isFrozen(value)).toBe(true)
+    }
+    expect(puzzle.settings.skipBackground).toBe(true)
+  })
+  it('still rejects zero answer capacity for an all-background image', () => {
+    expect(() => createPuzzle(white, { ...DEFAULT_SETTINGS, skipBackground: true, maxResult: 1 })).toThrow('no allowed answers')
+  })
+  it('leaves all-foreground arithmetic unchanged', () => {
+    const foreground = { ...white, palette: [[239, 255, 255]] satisfies Rgb[] }
+    const original = createPuzzle(foreground, DEFAULT_SETTINGS, () => .5)
+    const skipped = createPuzzle(foreground, { ...DEFAULT_SETTINGS, skipBackground: true }, () => .5)
+    expect(skipped.cells).toEqual(original.cells)
+    expect(skipped.key).toEqual(original.key)
+  })
+  it('does not allocate scarce answers to skipped palette colors', () => {
+    const puzzle = createPuzzle({
+      ...white, palette: [[255, 255, 255], [240, 240, 240], [0, 0, 0]],
+      assignments: [0, 1, 0, 1, 0, 2, 2, 1, 0, 2, 2, 1, 0, 1, 0, 1],
+    }, { ...DEFAULT_SETTINGS, skipBackground: true, maxResult: 2, maxResultsPerColor: 8 })
+    expect(puzzle.palette).toHaveLength(3)
+    expect(puzzle.key).toHaveLength(1)
+    expect(puzzle.key[0]).toMatchObject({ colorIndex: 2, results: [2] })
+    expect(puzzle.cells.filter(isProblemCell)).toHaveLength(4)
+    expect(puzzle.cells.filter(isProblemCell).every(cell => answer(cell) === 2)).toBe(true)
+  })
+  it('counts only active cells of a color shared by enclosed white and the background', () => {
+    const assignments = Array<number>(36).fill(1)
+    for (const index of [0, 1, 2, 3, 4, 5, 14, 15]) assignments[index] = 0
+    const puzzle = createPuzzle({
+      rows: 6, columns: 6, palette: [[255, 255, 255], [0, 0, 0]], assignments,
+    }, { ...DEFAULT_SETTINGS, skipBackground: true, maxResultsPerColor: 8 }, () => .5)
+    expect(puzzle.cells.filter(cell => !isProblemCell(cell))).toHaveLength(6)
+    const activeWhite = puzzle.cells.filter(isProblemCell).filter(cell => cell.colorIndex === 0)
+    expect(activeWhite).toHaveLength(2)
+    const entry = puzzle.key.find(entry => entry.colorIndex === 0)!
+    expect(entry.results).toHaveLength(2)
+    expect(new Set(activeWhite.map(answer))).toEqual(new Set(entry.results))
+    expect(puzzle.key.find(entry => entry.colorIndex === 1)?.results).toHaveLength(8)
+  })
+  it('validates the grid before attempting background detection', () => {
+    expect(() => createPuzzle({ ...white, assignments: Array(16).fill(9) }, { ...DEFAULT_SETTINGS, skipBackground: true })).toThrow('incomplete or invalid')
+    expect(() => createPuzzle({ ...white, palette: [[256, 255, 255]] }, { ...DEFAULT_SETTINGS, skipBackground: true })).toThrow('unique, used RGB')
   })
 })

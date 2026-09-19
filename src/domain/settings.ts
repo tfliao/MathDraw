@@ -13,6 +13,8 @@ export interface PuzzleSettings {
   readonly maxOperand: number
   readonly operators: readonly Operator[]
   readonly multiMap: boolean
+  readonly maxResultsPerColor: number
+  readonly skipBackground: boolean
   readonly maxColors: number
   readonly maxResult: number
   readonly allowZeroResults: boolean
@@ -21,6 +23,7 @@ export interface PuzzleSettings {
 export const DEFAULT_SETTINGS: PuzzleSettings = Object.freeze({
   allowZero: false, maxOperand: 9, operators: Object.freeze<Operator[]>(['+']),
   multiMap: true, maxColors: DEFAULT_MAX_COLORS, maxResult: 99, allowZeroResults: false,
+  maxResultsPerColor: 3, skipBackground: false,
 })
 
 export function settingsErrors(settings: PuzzleSettings, messages: Messages = en) {
@@ -30,6 +33,7 @@ export function settingsErrors(settings: PuzzleSettings, messages: Messages = en
       new Set(settings.operators).size !== settings.operators.length ? messages.invalidOperators : null,
     maxColors: !Number.isInteger(settings.maxColors) || settings.maxColors < 1 || settings.maxColors > MAX_COLORS ? messages.wholeNumber(1, MAX_COLORS) : null,
     maxResult: !Number.isInteger(settings.maxResult) || settings.maxResult < 0 || settings.maxResult > MAX_RESULT ? messages.wholeNumber(0, MAX_RESULT) : null,
+    maxResultsPerColor: !Number.isInteger(settings.maxResultsPerColor) || settings.maxResultsPerColor < 1 || settings.maxResultsPerColor > 8 ? messages.wholeNumber(1, 8) : null,
   }
 }
 

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { answer, assertSettings, buildProblemPool, DEFAULT_SETTINGS, MAX_RESULT, OPERATORS, problemText } from './settings'
+import { answer, assertSettings, buildProblemPool, DEFAULT_SETTINGS, MAX_RESULT, OPERATORS, problemText, settingsErrors } from './settings'
 import type { Operator } from './settings'
 
 describe('difficulty settings', () => {
   it('retains default addition with the new result constraints', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false })
+    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false, maxResultsPerColor: 3, skipBackground: false })
     expect([...buildProblemPool(DEFAULT_SETTINGS).keys()]).toEqual(Array.from({ length: 17 }, (_, index) => index + 2))
   })
   for (let mask = 1; mask < 8; mask++) {
@@ -51,6 +51,16 @@ describe('difficulty settings', () => {
   })
   it.each([0, 17, 1.5, NaN])('rejects color count %s', maxColors => {
     expect(() => assertSettings({ ...DEFAULT_SETTINGS, maxColors })).toThrow('1 to 16')
+  })
+  it.each([0, -1, 9, 1.5, NaN, Infinity])('always rejects results per color %s', maxResultsPerColor => {
+    for (const multiMap of [false, true]) {
+      const settings = { ...DEFAULT_SETTINGS, maxResultsPerColor, multiMap }
+      expect(settingsErrors(settings).maxResultsPerColor).toContain('1 to 8')
+      expect(() => assertSettings(settings)).toThrow('1 to 8')
+    }
+  })
+  it.each([1, 2, 3, 4, 5, 6, 7, 8])('accepts results per color %s', maxResultsPerColor => {
+    expect(settingsErrors({ ...DEFAULT_SETTINGS, maxResultsPerColor }).maxResultsPerColor).toBeNull()
   })
   it.each(([[], ['+', '+']] satisfies Operator[][]).map(operators => ({ operators })))('rejects invalid operator sets $operators', ({ operators }) => {
     expect(() => assertSettings({ ...DEFAULT_SETTINGS, operators })).toThrow('operator')
