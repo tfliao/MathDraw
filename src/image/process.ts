@@ -8,6 +8,8 @@ import { fitImage, sampleCells, SAMPLES_PER_CELL } from '../domain/sampling'
 import { DEFAULT_MAX_COLORS, DEFAULT_SETTINGS, isResizeAlgorithm } from '../domain/settings'
 import type { ResizeAlgorithm } from '../domain/settings'
 import { UserFacingError } from '../i18n/locale'
+import { findTrimBounds } from './trim'
+import type { TrimBounds } from './trim'
 
 export const MAX_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_PIXELS = 40_000_000
@@ -17,6 +19,13 @@ export interface LoadedImage {
   readonly file: File
   readonly previewUrl: string
   readonly name: string
+  readonly originalWidth: number
+  readonly originalHeight: number
+  readonly trim: {
+    readonly enabled: boolean
+    readonly bounds: TrimBounds
+    readonly noForeground: boolean
+  }
   dispose(): void
 }
 
@@ -48,29 +57,60 @@ function makeCanvas(width: number, height: number) {
   return { canvas, context }
 }
 
-export async function loadImage(file: File): Promise<LoadedImage> {
+export async function loadImage(file: File, trimMargins = false, signal?: AbortSignal): Promise<LoadedImage> {
+  signal?.throwIfAborted()
   validateFile(file)
   let bitmap: ImageBitmap
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' })
   } catch {
+    signal?.throwIfAborted()
     throw new UserFacingError('decodeFailed')
   }
+  let previewUrl: string | undefined
   try {
+    signal?.throwIfAborted()
     validateImageDimensions(bitmap.width, bitmap.height)
+    const originalWidth = bitmap.width
+    const originalHeight = bitmap.height
+    const trim: LoadedImage['trim'] = {
+      enabled: trimMargins,
+      ...(trimMargins ? await findTrimBounds(bitmap, signal) : {
+        bounds: { x: 0, y: 0, width: originalWidth, height: originalHeight },
+        noForeground: false,
+      }),
+    }
+    signal?.throwIfAborted()
+    const { x, y, width, height } = trim.bounds
+    if (x !== 0 || y !== 0 || width !== originalWidth || height !== originalHeight) {
+      const original = bitmap
+      bitmap = await createImageBitmap(original, x, y, width, height)
+      original.close()
+      signal?.throwIfAborted()
+    }
     const scale = Math.min(1, 320 / Math.max(bitmap.width, bitmap.height))
     const { canvas, context } = makeCanvas(Math.max(1, Math.round(bitmap.width * scale)), Math.max(1, Math.round(bitmap.height * scale)))
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(value => value ? resolve(value) : reject(new UserFacingError('previewFailed')), 'image/png')
     })
-    const previewUrl = URL.createObjectURL(blob)
+    signal?.throwIfAborted()
+    previewUrl = URL.createObjectURL(blob)
+    const ownedUrl = previewUrl
+    let disposed = false
     return {
-      bitmap, file, previewUrl, name: file.name,
-      dispose() { bitmap.close(); URL.revokeObjectURL(previewUrl) },
+      bitmap, file, previewUrl, name: file.name, originalWidth, originalHeight, trim,
+      dispose() {
+        if (disposed) return
+        disposed = true
+        bitmap.close()
+        URL.revokeObjectURL(ownedUrl)
+      },
     }
   } catch (error) {
     bitmap.close()
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    signal?.throwIfAborted()
     throw error
   }
 }
@@ -79,6 +119,9 @@ export interface ImageDiagnostics {
   readonly pipelineVersion: '2'
   readonly sourceWidth: number
   readonly sourceHeight: number
+  readonly trim?: LoadedImage['trim']
+  readonly inputWidth?: number
+  readonly inputHeight?: number
   readonly requestedAlgorithm: ResizeAlgorithm
   readonly appliedAlgorithm: ResizeAlgorithm | 'identity'
   readonly effectiveMaximumColors: number
@@ -150,7 +193,9 @@ export async function processImage(
   return {
     rows, columns, ...grid,
     diagnostics: {
-      pipelineVersion: '2', sourceWidth, sourceHeight, requestedAlgorithm: algorithm,
+      pipelineVersion: '2', sourceWidth: image.originalWidth, sourceHeight: image.originalHeight,
+      ...(image.trim.enabled ? { trim: image.trim, inputWidth: sourceWidth, inputHeight: sourceHeight } : {}),
+      requestedAlgorithm: algorithm,
       appliedAlgorithm: sameSize ? 'identity' : algorithm, fittedBounds: fit,
       effectiveMaximumColors: maximumColors, samplesPerCellSide: samples,
       sampledColors: colors, sampledColorCount: new Set(colors.map(toHex)).size,
