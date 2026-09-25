@@ -1127,3 +1127,59 @@ loopback/public-host controls, and existing Letter/large-paper flows. New A4 PDF
 fit one page with unchanged 7.5 mm cells and 10 pt arithmetic. Build, type checking,
 and lint pass; the rebuilt production preview also confirms both the new automatic
 dimensions and local-only diagnostic control.
+
+## 23. Trim image margins before puzzle generation
+
+Start `feat/trim-image-margins` from freshly fetched `origin/master` at c363357,
+which includes merged PR #5. Keep the user's untracked `mimion.png` local and
+unchanged; do not commit or upload it.
+
+The user confirmed these decisions before implementation:
+
+- Add an off-by-default "Trim background margins" toggle beside the uploaded image.
+  Apply it on upload and whenever toggled, before puzzle generation.
+- Composite transparency onto white for background classification. Every RGB
+  channel >=240 is background; crop to the bounding box of all remaining pixels.
+  Add no border. The earlier one-empty-row/column requirement is explicitly removed.
+- Update the image preview immediately after processing, showing both original
+  decoded dimensions and trimmed dimensions. Turning trimming off restores the
+  original without asking the user to upload again.
+- Auto size uses the cropped proportions. Preserve manual rows/columns and normal
+  aspect-fit padding during puzzle generation; trimming does not stretch the image.
+- If no foreground exists, keep the original image and dimensions and show a
+  localized "No foreground found; nothing to trim" notice.
+- Changing the option invalidates old puzzles/printouts. Handle in-flight uploads,
+  toggles, errors, and resource disposal without showing stale image results.
+
+Implementation uses bounded tiles for source-resolution foreground detection,
+with cancellation and periodic event-loop yields. Retain the selected File in
+memory so a toggle can reprocess it without requiring another upload; retain
+original file bytes and record crop bounds in local diagnostic exports.
+Cover threshold/transparency, exact crop bounds, one-pixel and all-background
+images, original/trimmed previews, auto/manual sizing, stale generation and
+rapid replacement/toggling, both languages, and the supplied local example.
+Commit meaningful iterations, independently review locally, then open a new PR
+against master for the user's final review.
+
+While the user was away, choose re-decoding the retained local File on each toggle
+instead of caching two full-size bitmaps. This uses the existing upload lifecycle,
+keeps original bytes intact, and limits persistent bitmap memory. Clear the old
+preview while preparing the replacement rather than showing an image with the
+wrong option state; disable generation until it is ready. Keep this image-only
+option in preprocessing state, not arithmetic settings; diagnostic crop metadata
+records what was actually used.
+
+The supplied local example is 1087 by 1385 pixels. Independently scanning its
+decoded, white-composited source yields bounds x=261, y=155, width=677, height=1072,
+which the implemented crop matches. About 48.2% of the original area remains;
+automatic grid dimensions change from 22 by 28 to 18 by 28. The file was used only
+in a local browser with no external image requests and is not part of the commits.
+
+Independent local code review found no significant issues. Passed 92 targeted
+unit tests and 50 distinct browser cases across focused runs. Coverage includes
+all four resize algorithms using the crop, exact cropped-cell colors, preserving
+manual aspect-fit margins, both localized previews, original-byte debug export,
+all-background handling, alpha threshold boundaries, one-pixel subjects, tile
+boundaries, EXIF, failed crops, stale crop/decode disposal, and existing image,
+language, sizing, and print flows. Production build, type checking, and lint pass.
+The rebuilt local preview also processes the supplied sample successfully.

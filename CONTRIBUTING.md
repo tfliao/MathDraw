@@ -171,6 +171,11 @@ separate text items or equivalent radicals.
   still require larger paper; Letter is not equivalent to A4 at these bounds.
 - Respect current grid/image limits; release old bitmaps and object URLs, and
   discard stale asynchronous work.
+- Trim margins before preview/auto sizing and puzzle resampling, using a bounded
+  tile scan at decoded source resolution with near-white classification after
+  white composition. Do not resize to find the bounds or allocate a full-image
+  RGBA canvas. Cancel obsolete scans/toggles and dispose superseded crops/previews.
+  Keep original bytes and dimensions in diagnostics; record the crop separately.
 - Reuse `Worksheet` for screen and print. Keep readable cell/font sizes, and
   test larger paper whenever changing geometry or key layout.
 - Language changes are presentation-only: do not regenerate or invalidate a
