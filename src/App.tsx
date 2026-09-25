@@ -23,6 +23,7 @@ function App() {
   const [rows, setRows] = useState('20')
   const [columns, setColumns] = useState('16')
   const [autoSize, setAutoSize] = useState(true)
+  const [trimMargins, setTrimMargins] = useState(false)
   const [settingsDraft, setSettingsDraft] = useState(DEFAULT_DRAFT)
   const settings = useMemo(() => parseSettings(settingsDraft), [settingsDraft])
   const invalidSettings = Object.values(settingsErrors(settings)).some(Boolean)
@@ -31,7 +32,7 @@ function App() {
   const noResults = !invalidSettings && resultCapacity === 0
   const rowsError = autoSize ? null : dimensionError(rows, 'rows', t)
   const columnsError = autoSize ? null : dimensionError(columns, 'columns', t)
-  const { image, loading, error: imageError, selectFile } = useImageInput()
+  const { image, loading, error: imageError, selectFile, setTrimMargins: prepareTrimmedImage } = useImageInput()
   const autoGrid = image ? autoDimensions(image.bitmap.width, image.bitmap.height) : null
   const gridRows = autoSize ? autoGrid?.rows : Number(rows)
   const gridColumns = autoSize ? autoGrid?.columns : Number(columns)
@@ -149,10 +150,18 @@ function App() {
               <input id="image" type="file" accept="image/png,image/jpeg,image/webp" disabled={printing} aria-describedby="image-help image-error" aria-invalid={Boolean(imageError)} onChange={event => { changedInputs(); void selectFile(event.target.files?.[0]) }} />
               <p id="image-help">{t.imageHelp}<br />{t.simplePictures}</p>
               {image && <>
-                <img className="source-preview" src={image.previewUrl} alt={t.originalPicture(image.name)} aria-describedby="image-dimensions" />
-                <p id="image-dimensions" role="status">{t.imageDimensions(image.bitmap.width, image.bitmap.height)}</p>
+                <img className="source-preview" src={image.previewUrl} alt={image.trim.enabled ? t.trimmedPicture(image.name) : t.originalPicture(image.name)} aria-describedby={image.trim.enabled ? 'image-dimensions trimmed-dimensions' : 'image-dimensions'} />
+                <p id="image-dimensions" role="status">{t.imageDimensions(image.originalWidth, image.originalHeight)}</p>
+                {image.trim.enabled && <p id="trimmed-dimensions" role="status">{t.trimmedDimensions(image.bitmap.width, image.bitmap.height)}</p>}
+                {image.trim.enabled && image.trim.noForeground && <p role="status">{t.nothingToTrim}</p>}
               </>}
             </div>
+            <label className="toggle-field"><input type="checkbox" checked={trimMargins} disabled={printing} aria-describedby="trim-help" onChange={event => {
+              changedInputs()
+              setTrimMargins(event.target.checked)
+              void prepareTrimmedImage(event.target.checked)
+            }} />{t.trimMargins}</label>
+            <p className="help" id="trim-help">{t.trimHelp}</p>
             <p className="field-error" role="alert" id="image-error">{imageError && t[imageError.code]}</p>
             <p className="field-label">{t.pickGrid}</p>
             <label className="toggle-field"><input type="checkbox" checked={autoSize} disabled={printing} onChange={event => { changedInputs(); setAutoSize(event.target.checked) }} />{t.autoSize}</label>

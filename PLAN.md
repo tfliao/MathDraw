@@ -1160,3 +1160,26 @@ images, original/trimmed previews, auto/manual sizing, stale generation and
 rapid replacement/toggling, both languages, and the supplied local example.
 Commit meaningful iterations, independently review locally, then open a new PR
 against master for the user's final review.
+
+While the user was away, choose re-decoding the retained local File on each toggle
+instead of caching two full-size bitmaps. This uses the existing upload lifecycle,
+keeps original bytes intact, and limits persistent bitmap memory. Clear the old
+preview while preparing the replacement rather than showing an image with the
+wrong option state; disable generation until it is ready. Keep this image-only
+option in preprocessing state, not arithmetic settings; diagnostic crop metadata
+records what was actually used.
+
+The supplied local example is 1087 by 1385 pixels. Independently scanning its
+decoded, white-composited source yields bounds x=261, y=155, width=677, height=1072,
+which the implemented crop matches. About 48.2% of the original area remains;
+automatic grid dimensions change from 22 by 28 to 18 by 28. The file was used only
+in a local browser with no external image requests and is not part of the commits.
+
+Independent local code review found no significant issues. Passed 92 targeted
+unit tests and 50 distinct browser cases across focused runs. Coverage includes
+all four resize algorithms using the crop, exact cropped-cell colors, preserving
+manual aspect-fit margins, both localized previews, original-byte debug export,
+all-background handling, alpha threshold boundaries, one-pixel subjects, tile
+boundaries, EXIF, failed crops, stale crop/decode disposal, and existing image,
+language, sizing, and print flows. Production build, type checking, and lint pass.
+The rebuilt local preview also processes the supplied sample successfully.

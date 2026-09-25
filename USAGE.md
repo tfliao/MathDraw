@@ -26,6 +26,25 @@ applied, not the smaller preview dimensions. Use their proportions to choose a
 manual grid within the 4-64 row/column limits; the display does not change your
 manual grid values.
 
+### Trim background margins
+
+Enable **Trim background margins** beside the upload to remove outer near-white
+or transparent space before creating the puzzle. It is off by default. Uploading
+while enabled, or toggling it after upload, updates the picture preview and shows
+both the original and trimmed width/height. Turning it off restores the original
+without another upload.
+
+The crop tightly bounds all pixels that are not near-white (at least one RGB
+channel below 240 after transparency is composited onto white). No border is added.
+Interior white areas remain; even a tiny darker speck outside the main subject
+can extend the bounds. All-white/near-white images stay unchanged with a notice.
+
+Auto size uses the trimmed proportions. Manual rows and columns are preserved,
+so normal aspect fitting can still introduce margins into the puzzle. The feature
+does not guarantee a particular number of blank puzzle rows or columns, and it
+does not stretch the subject. Changing trimming makes the old puzzle stale;
+generate again before printing or downloading a debugging bundle.
+
 ## Language
 
 Use **Language / 語言** near the top of the page to select **English** or
@@ -182,6 +201,9 @@ bundle includes the original file bytes and metadata, decoded dimensions, select
 algorithm and settings, effective color limit, pre-palette RGB cells, palette and
 assignments, the actual generated problems, and three PNG images at grid resolution:
 before palette reduction, after reduction, and the visible solution.
+When trimming is enabled, diagnostics also record the original-image crop bounds
+and cropped input dimensions. Original file bytes and dimensions remain unchanged
+in the bundle, so the crop can be reproduced.
 
 The download is local and explicit; nothing is uploaded. **The bundle includes
 the full original image and its embedded metadata.** Share it only if that is

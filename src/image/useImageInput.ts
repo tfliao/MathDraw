@@ -10,15 +10,22 @@ export function useImageInput() {
   const [error, setError] = useState<UserFacingError | null>(null)
   const active = useRef<LoadedImage | null>(null)
   const request = useRef(0)
+  const selected = useRef<File | undefined>(undefined)
+  const trimming = useRef(false)
+  const operation = useRef<AbortController | null>(null)
 
   useEffect(() => () => {
     request.current++
+    operation.current?.abort()
     active.current?.dispose()
     active.current = null
   }, [])
 
-  async function selectFile(file: File | undefined) {
+  async function prepare(file: File | undefined) {
     const id = ++request.current
+    operation.current?.abort()
+    const controller = new AbortController()
+    operation.current = controller
     active.current?.dispose()
     active.current = null
     setImage(null)
@@ -26,7 +33,7 @@ export function useImageInput() {
     setLoading(Boolean(file))
     if (!file) return
     try {
-      const result = await loadImage(file)
+      const result = await loadImage(file, trimming.current, controller.signal)
       if (id !== request.current) {
         result.dispose()
         return
@@ -40,5 +47,15 @@ export function useImageInput() {
     }
   }
 
-  return { image, loading, error, selectFile }
+  function selectFile(file: File | undefined) {
+    selected.current = file
+    return prepare(file)
+  }
+
+  function setTrimMargins(enabled: boolean) {
+    trimming.current = enabled
+    return prepare(selected.current)
+  }
+
+  return { image, loading, error, selectFile, setTrimMargins }
 }
