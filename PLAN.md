@@ -1183,3 +1183,62 @@ all-background handling, alpha threshold boundaries, one-pixel subjects, tile
 boundaries, EXIF, failed crops, stale crop/decode disposal, and existing image,
 language, sizing, and print flows. Production build, type checking, and lint pass.
 The rebuilt local preview also processes the supplied sample successfully.
+
+## 24. Output crayon sets for real-world coloring
+
+The user approved the researched Crayola regular 16 (Starter), 24 (Everyday),
+and 48 (Expanded) reference sets, then explicitly approved the impact plan before
+implementation. The research review page was temporary; retain durable palette
+data and source/accuracy notes in `src\domain\crayonSets.ts` and `USAGE.md`.
+
+Use nested US regular 2018-2021 Bluetiful-era assortments, not a claim about
+every contemporary or same-count box. Approximate digital colors follow the
+documented collector reference, with explicit corrections for Blue Violet,
+Bluetiful, and Brown, and paper white normalized to #FFFFFF. Version this
+catalog independently of the image pipeline; do not claim measured pigment
+accuracy or cross-brand compatibility.
+
+Implemented scope:
+
+- Advanced Output color set dropdown defaults to Image colors. Provide all three
+  presets, a visible swatch strip, and an accessible expandable list of named
+  swatches/HEX codes, rather than unreliable tooltips on native select options.
+- Keep the existing 1-16 used-color limit (default 8), constrained by legal math
+  result capacity. A larger crayon box supplies candidates, not more worksheet
+  colors. Disclose the white-only outcome possible with a one-color limit.
+- In crayon mode, match samples by existing Lab/CIE76 distance, reduce the matched
+  allowed colors with the existing deterministic weighted-medoid algorithm, then
+  reassign original samples to surviving crayons. Optional merging retains the
+  existing minimum separation of 25 without introducing out-of-catalog RGB.
+  Keep the legacy Image colors path and sampling algorithms unchanged.
+- Before crayon matching, determine the existing side-connected near-white
+  background from sampled cells. When skipping is on, match those cells to paper
+  white and retain a copied/frozen explicit mask in the puzzle. This prevents pale
+  foreground that snaps to white from losing arithmetic and preserves enclosed
+  whites. Background cells still consume no key entries or math results.
+- Frozen settings record the output set; the snapshot and key retain catalog
+  version and stable crayon IDs. Reuse names and identity in both screen and print.
+  Use two named key entries per row, with shared physical-layout estimates and
+  larger-paper guidance, instead of squeezing long crayon names into four columns.
+- Add bilingual surrounding UI/print text. Keep English crayon wrapper names
+  recognizable. Language changes remain presentation-only, while preset edits
+  make existing snapshots stale.
+- Preset processing records pipeline version 3, catalog version and palette IDs;
+  Image colors retains pipeline version 2. Debug bundle schema 1 gains additive
+  catalog/provenance fields; keep sampled, quantized and visible-solution stages
+  distinct and retain the existing loopback-only export restriction.
+
+Validation covers constrained output at capacities 1/3/8/16 with merging on/off,
+actual sample-to-puzzle background behavior, limited/empty math capacity,
+identity-size images, immutable metadata, bilingual UI/printed names, stale
+controls, restoring Image colors, and long sixteen-color/eight-result print keys.
+
+Passed 232 affected unit tests and 50 distinct browser cases across focused runs,
+including actual English/Traditional Chinese puzzle/solution PDFs and the
+sixteen-color/eight-answer larger-paper case. Existing image-color background,
+resampling, asynchronous cancellation, local-only diagnostics, language switching,
+and A4 PDF flows remain covered. Type checking, lint, and the production build pass.
+
+Independent pre-commit code review found no significant issues. Create the review
+PR from a new feature branch based on the latest `origin/master`; keep the
+user's untracked `mimion.png` local and out of the commit.

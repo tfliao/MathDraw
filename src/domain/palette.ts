@@ -2,6 +2,8 @@ import { colorDistance, isWhite, rgbToLab, toHex } from './color'
 import type { Lab, Rgb } from './color'
 import { MAX_CELLS } from './dimensions'
 import { DEFAULT_MAX_COLORS, MAX_COLORS } from './settings'
+import { CRAYON_SETS } from './crayonSets'
+import type { CrayonSetId } from './crayonSets'
 
 export const MIN_COLOR_DISTANCE = 25
 
@@ -10,6 +12,7 @@ export interface ColorGrid {
   readonly columns: number
   readonly palette: readonly Rgb[]
   readonly assignments: readonly number[]
+  readonly backgroundCells?: readonly boolean[]
 }
 
 interface Sample {
@@ -41,14 +44,20 @@ function representative(cluster: readonly Sample[]): Sample {
   return best
 }
 
-export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MAX_COLORS, mergeSimilarColors = false): Pick<ColorGrid, 'palette' | 'assignments'> {
+function assertPaletteInput(colors: readonly Rgb[], maximumColors: number) {
   if (!Number.isInteger(maximumColors) || maximumColors < 1 || maximumColors > MAX_COLORS) throw new Error('Maximum colors must be a whole number from 1 to 16.')
   if (colors.length === 0 || colors.length > MAX_CELLS) throw new Error(`Provide between 1 and ${MAX_CELLS} cell colors.`)
-  const unique = new Map<string, Sample>()
   for (const rgb of colors) {
-    if (rgb.some(channel => !Number.isInteger(channel) || channel < 0 || channel > 255)) {
+    if (rgb.length !== 3 || rgb.some(channel => !Number.isInteger(channel) || channel < 0 || channel > 255)) {
       throw new Error('Cell colors must contain integer RGB channels from 0 to 255.')
     }
+  }
+}
+
+export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MAX_COLORS, mergeSimilarColors = false): Pick<ColorGrid, 'palette' | 'assignments'> {
+  assertPaletteInput(colors, maximumColors)
+  const unique = new Map<string, Sample>()
+  for (const rgb of colors) {
     const key = toHex(rgb)
     const existing = unique.get(key)
     if (existing) existing.count++
@@ -115,4 +124,22 @@ export function reducePalette(colors: readonly Rgb[], maximumColors = DEFAULT_MA
   const palette = used.map(sample => sample.rgb)
   const assignments = rawAssignments.map(index => used.indexOf(centers[index]))
   return { palette, assignments }
+}
+
+export function reduceCrayonPalette(colors: readonly Rgb[], set: CrayonSetId, maximumColors = DEFAULT_MAX_COLORS, mergeSimilarColors = false): Pick<ColorGrid, 'palette' | 'assignments'> {
+  assertPaletteInput(colors, maximumColors)
+  const allowed = CRAYON_SETS[set].colors.map(({ rgb }): Sample => ({ rgb, lab: rgbToLab(rgb), count: 0 }))
+  const samples = colors.map(rgb => ({ rgb, lab: rgbToLab(rgb), count: 1 }))
+  const matched = samples.map(sample => allowed[closest(sample, allowed)].rgb)
+  const reduced = reducePalette(matched, maximumColors, mergeSimilarColors)
+  const retained = new Set(reduced.palette.map(toHex))
+  const centers = allowed.filter(color => retained.has(toHex(color.rgb)))
+  // Reassign original samples, not their already-snapped approximations.
+  const rawAssignments = samples.map(sample => closest(sample, centers))
+  const used = new Set(rawAssignments)
+  const indices = centers.flatMap((_, index) => used.has(index) ? [index] : [])
+  return {
+    palette: indices.map(index => centers[index].rgb),
+    assignments: rawAssignments.map(index => indices.indexOf(index)),
+  }
 }

@@ -3,8 +3,17 @@ import { worksheetLayout } from './layout'
 import { createPuzzle } from './puzzle'
 import { DEFAULT_SETTINGS } from './settings'
 import type { Rgb } from './color'
+import { CRAYON_SETS } from './crayonSets'
 
 describe('readable worksheet sizing', () => {
+  it('allocates wider key entries and additional height for named crayons', () => {
+    const palette = CRAYON_SETS['crayola-48'].colors.slice(0, 16).map(color => color.rgb)
+    const puzzle = createPuzzle({
+      rows: 28, columns: 25, palette, assignments: Array.from({ length: 700 }, (_, index) => index % 16),
+    }, { ...DEFAULT_SETTINGS, maxColors: 16, outputColorSet: 'crayola-48' })
+    expect(worksheetLayout(puzzle).heightMm).toBeGreaterThan(277)
+    expect(worksheetLayout(puzzle).needsLargerPaper).toBe(true)
+  })
   it('preserves the default A4 layout', () => {
     const puzzle = createPuzzle({ rows: 24, columns: 24, palette: [[0, 0, 0]], assignments: Array(576).fill(0) })
     expect(worksheetLayout(puzzle)).toEqual({

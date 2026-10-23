@@ -1,5 +1,6 @@
 import { DEFAULT_SETTINGS } from '../domain/settings'
 import type { Operator, PuzzleSettings, ResizeAlgorithm } from '../domain/settings'
+import type { OutputColorSet } from '../domain/crayonSets'
 
 export interface SettingsDraft {
   allowZero: boolean
@@ -13,6 +14,7 @@ export interface SettingsDraft {
   allowZeroResults: boolean
   resizeAlgorithm: ResizeAlgorithm
   mergeSimilarColors: boolean
+  outputColorSet: OutputColorSet
 }
 
 export const DEFAULT_DRAFT: SettingsDraft = {

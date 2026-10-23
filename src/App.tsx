@@ -13,6 +13,7 @@ import { usePrint } from './components/usePrint'
 import { AdvancedSettings } from './components/AdvancedSettings'
 import { DEFAULT_DRAFT, parseSettings } from './components/settingsDraft'
 import { buildProblemPool, settingsErrors } from './domain/settings'
+import { CRAYON_SETS } from './domain/crayonSets'
 import { useLanguage } from './i18n/useLanguage'
 import { isLanguage, UserFacingError, userFacingError } from './i18n/locale'
 import './App.css'
@@ -28,7 +29,7 @@ function App() {
   const settings = useMemo(() => parseSettings(settingsDraft), [settingsDraft])
   const invalidSettings = Object.values(settingsErrors(settings)).some(Boolean)
   const resultCapacity = useMemo(() => invalidSettings ? 0 : buildProblemPool(settings).size, [settings, invalidSettings])
-  const effectiveColors = Math.min(settings.maxColors, resultCapacity)
+  const effectiveColors = Math.min(settings.maxColors, resultCapacity, settings.outputColorSet === 'image' ? Infinity : CRAYON_SETS[settings.outputColorSet].colors.length)
   const noResults = !invalidSettings && resultCapacity === 0
   const rowsError = autoSize ? null : dimensionError(rows, 'rows', t)
   const columnsError = autoSize ? null : dimensionError(columns, 'columns', t)
@@ -82,7 +83,9 @@ function App() {
     await new Promise<void>(resolve => setTimeout(resolve, 30))
     if (id !== request.current) return
     try {
-      const grid = await processImage(image, gridRows, gridColumns, effectiveColors, settings.resizeAlgorithm, settings.mergeSimilarColors, controller.signal)
+      const grid = await processImage(image, gridRows, gridColumns, effectiveColors, settings.resizeAlgorithm, settings.mergeSimilarColors, controller.signal, {
+        outputColorSet: settings.outputColorSet, skipBackground: settings.skipBackground,
+      })
       if (id !== request.current) return
       setSnapshot({ puzzle: createPuzzle(grid, settings), revision, source: image.file, diagnostics: grid.diagnostics })
       setView('puzzle')
@@ -185,6 +188,7 @@ function App() {
             <label className="toggle-field"><input type="checkbox" checked={settingsDraft.skipBackground} disabled={printing} aria-describedby="background-help" onChange={event => { changedInputs(); setSettingsDraft({ ...settingsDraft, skipBackground: event.target.checked }) }} />{t.skipBackground}</label>
             <p className="help" id="background-help">{t.backgroundHelp}</p>
             <AdvancedSettings value={settingsDraft} disabled={printing} onChange={value => { changedInputs(); setSettingsDraft(value) }} />
+            {settings.outputColorSet !== 'image' && effectiveColors === 1 && <p className="help">{t.oneCrayonHelp}</p>}
             {invalidSettings && <p className="field-error" role="alert">{t.invalidAdvanced}</p>}
             {noResults && <p className="field-error" role="alert">{t.noResults}</p>}
             {!invalidSettings && !noResults && effectiveColors < settings.maxColors && <p className="stale-notice" role="status">{t.reducedColors(resultCapacity, effectiveColors)}</p>}
@@ -208,7 +212,7 @@ function App() {
                 <div className="worksheet-scroll" tabIndex={0} role="region" aria-label={t.scrollPreview} aria-describedby="worksheet-scroll-help">
                   <Worksheet puzzle={snapshot.puzzle} mode={view} />
                 </div>
-                <p className="help">{t.colorHelp}</p>
+                <p className="help">{snapshot.puzzle.settings.outputColorSet === 'image' ? t.colorHelp : t.crayonColorHelp}</p>
                 {stats && <p className="help" id="processing-summary">{t.processingSummary(stats.sampledColorCount, stats.paletteColorCount, stats.paletteChangedCells, stats.backgroundWhitenedCells)}</p>}
                 <div className="print-actions">
                   <button disabled={!printReady || printing} onClick={() => void print('puzzle')}>{t.printPuzzle}</button>

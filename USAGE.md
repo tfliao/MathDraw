@@ -87,6 +87,7 @@ result mapping, resizing, and color options are under **Advanced**.
 | Maximum colors | 8 | Integer from 1 to 16; actual count may be lower |
 | Image resizing algorithm | Pica MKS2013 | Choose Pica, nearest neighbor, browser smoothing, or foreground dominant |
 | Merge similar colors | Off | Optionally merge perceptually close shades for easier coloring; can erase pale details |
+| Output color set | Image colors | Keep image-matched colors, or choose Crayola regular 16, 24, or 48 |
 
 ## Arithmetic
 
@@ -111,9 +112,10 @@ palette color and is labeled **Leave white** when it has problems in the color k
 When the original image width/height exactly match the grid columns/rows,
 each white-composited source pixel goes directly to its corresponding cell,
 without resizing or foreground voting, regardless of the selected algorithm.
+Selecting a crayon set still matches these sampled pixels to the chosen crayons.
 For example, a 22 by 24 pixel image uses 22 columns and 24 rows. With **Merge
 similar colors** and **Skip near-white background** off, its white-composited
-pixels remain unchanged if its colors fit the effective palette limit. Excess
+pixels remain unchanged in **Image colors** mode if its colors fit the effective palette limit. Excess
 colors still need reduction; legal math answers can lower the effective limit.
 
 For other sizes, choose an algorithm under **Advanced**:
@@ -149,17 +151,23 @@ source pixels before sampling. The later image-wide CIELAB palette selection and
 color limit still applies; extra similar-color merging follows its separate toggle.
 
 This sampling experiment applies regardless of **Skip near-white background**.
-That separate toggle controls whether edge-connected near-white cells in the
-finished grid get math problems; it does not control sample exclusion.
+That separate toggle controls whether edge-connected near-white cells get math
+problems; it does not control sample exclusion.
 
 ### Skipping backgrounds
 
 Enable **Skip near-white background** to leave background squares without math
-problems. Detection uses the final resized, simplified grid: every RGB channel
+problems. In **Image colors** mode, detection uses the final resized, simplified grid: every RGB channel
 must be at least 240, and cells must connect to an outer edge through shared
 sides. Diagonal-only contact does not connect a region. Enclosed white/near-white
 details still have problems, even when they share the background color. Resizing
 and color simplification can change which regions connect.
+
+When a **crayon set** is selected, detect the same edge-connected near-white
+regions after resizing/sampling but **before crayon matching**, and retain that
+mask. A pale foreground that matches the white crayon does not become skipped
+background. Enclosed white details still get problems. Skipped regions are
+matched to paper white.
 
 Skipped squares remain in the grid and should be left uncolored; the solution
 shows them as white. The color key includes only colors used by actual problems.
@@ -168,7 +176,57 @@ explanation; turn the toggle off or choose another picture to get problems.
 
 ## Colors and result mappings
 
-By default, sampled colors are preserved exactly when they fit the palette limit.
+### Output color sets
+
+Under **Advanced > Output color set**, choose:
+
+| Choice | Available colors |
+| --- | --- |
+| **Image colors** (default) | Existing image-matched behavior |
+| **Crayola regular 16 (Starter)** | Basic and intermediate hues, brown, carnation pink, white |
+| **Crayola regular 24 (Everyday)** | Adds gray, apricot, cerulean, indigo, Bluetiful, scarlet, violet red, green yellow |
+| **Crayola regular 48 (Expanded)** | Adds lighter, earth, and muted shades, including peach, sky blue, and tan |
+
+The presets use the **US regular 2018-2021 Bluetiful-era reference**, not a
+guarantee of every box sold today. Check your box's color names. A same-count
+box from another brand or product line may contain different colors.
+The 16-color set is contained in the 24, which is contained in the 48.
+
+The swatch strip previews the selected set; expand **View all crayon colors**
+to see each English wrapper name and HEX code on keyboard, touch, or desktop.
+Screen and printed colors are approximations, not calibrated pigment measurements.
+The printed key shows the actual crayon names and identifies the reference set.
+Names remain in English to match the wrappers; instructions support both languages.
+
+Box size is not the number of colors in a worksheet. **Maximum colors** still
+allows 1-16 used colors (default 8), including paper white, and legal math answers
+can lower that limit. Matching uses CIE76 distance with deterministic ties.
+Capacity reduction and optional similar-color merging retain only colors from
+the chosen set; they never create averaged colors outside it.
+White means leave the paper uncolored. If required white uses the only available
+color slot, the whole picture can become white; increase the limit or allow
+more math answers to retain foreground colors.
+
+Changing the set marks the previous puzzle stale; create it again before printing
+or downloading diagnostics. Switching languages does not change its colors or math.
+Named crayon keys use two entries per row instead of four so long names remain
+readable. Larger keys may require larger paper; follow the displayed recommendation.
+
+Palette membership and approximate codes are based on
+[Jenny's Crayon Collection](https://www.jennyscrayoncollection.com/2017/10/complete-list-of-current-crayola-crayon.html),
+cross-checked against the digital 24-box table in
+[Wikipedia's color reference](https://en.wikipedia.org/wiki/List_of_Crayola_crayon_colors).
+The source has transcription discrepancies: Blue Violet and Brown follow
+cross-checked RGB, Bluetiful follows its RGB rather than the apparently swapped
+HEX, and white is deliberately normalized to paper `#FFFFFF`.
+The versioned catalog and provenance are in `src\domain\crayonSets.ts`.
+Local-only debug exports include the selected catalog/version, per-color IDs,
+and the original sampled and final output stages.
+
+### Reduction and arithmetic mapping
+
+In **Image colors** mode, sampled colors are preserved exactly when they fit the
+palette limit.
 Enable **Merge similar colors** to restore the earlier minimum CIE76 distance of
 25 between colors. This can turn pale details white even when more colors would
 fit; leave it off when preserving the picture is more important than easily

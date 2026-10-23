@@ -2,6 +2,7 @@ import { expect, it } from 'vitest'
 import { DEFAULT_DRAFT, parseSettings } from './settingsDraft'
 import { DEFAULT_SETTINGS, RESIZE_ALGORITHMS, settingsErrors } from '../domain/settings'
 import type { ResizeAlgorithm } from '../domain/settings'
+import { CRAYON_SET_IDS } from '../domain/crayonSets'
 
 it('distinguishes an empty maximum result from an explicit zero', () => {
   expect(settingsErrors(parseSettings({ ...DEFAULT_DRAFT, maxResult: '' })).maxResult).toBeTruthy()
@@ -13,6 +14,10 @@ it('parses all defaults consistently, including image settings', () => {
   expect(DEFAULT_DRAFT.resizeAlgorithm).toBe('pica')
   expect(DEFAULT_DRAFT.mergeSimilarColors).toBe(false)
   expect(parseSettings(DEFAULT_DRAFT)).toEqual(DEFAULT_SETTINGS)
+})
+
+it.each(CRAYON_SET_IDS)('preserves the selected %s preset while parsing other settings', outputColorSet => {
+  expect(parseSettings({ ...DEFAULT_DRAFT, outputColorSet, maxColors: '3' })).toMatchObject({ outputColorSet, maxColors: 3 })
 })
 
 it.each(RESIZE_ALGORITHMS)('preserves %s and both merging choices while parsing numeric fields', resizeAlgorithm => {

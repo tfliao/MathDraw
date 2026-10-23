@@ -1,5 +1,7 @@
 import { en } from '../i18n/en'
 import type { Messages } from '../i18n/en'
+import { isOutputColorSet } from './crayonSets'
+import type { OutputColorSet } from './crayonSets'
 
 export const OPERATORS = ['+', '-', '*'] as const
 export type Operator = typeof OPERATORS[number]
@@ -27,13 +29,14 @@ export interface PuzzleSettings {
   readonly allowZeroResults: boolean
   readonly resizeAlgorithm: ResizeAlgorithm
   readonly mergeSimilarColors: boolean
+  readonly outputColorSet: OutputColorSet
 }
 
 export const DEFAULT_SETTINGS: PuzzleSettings = Object.freeze({
   allowZero: false, maxOperand: 9, operators: Object.freeze<Operator[]>(['+']),
   multiMap: true, maxColors: DEFAULT_MAX_COLORS, maxResult: 99, allowZeroResults: false,
   maxResultsPerColor: 3, skipBackground: false,
-  resizeAlgorithm: 'pica', mergeSimilarColors: false,
+  resizeAlgorithm: 'pica', mergeSimilarColors: false, outputColorSet: 'image',
 })
 
 export function settingsErrors(settings: PuzzleSettings, messages: Messages = en) {
@@ -45,6 +48,7 @@ export function settingsErrors(settings: PuzzleSettings, messages: Messages = en
     maxResult: !Number.isInteger(settings.maxResult) || settings.maxResult < 0 || settings.maxResult > MAX_RESULT ? messages.wholeNumber(0, MAX_RESULT) : null,
     maxResultsPerColor: !Number.isInteger(settings.maxResultsPerColor) || settings.maxResultsPerColor < 1 || settings.maxResultsPerColor > 8 ? messages.wholeNumber(1, 8) : null,
     resizeAlgorithm: !isResizeAlgorithm(settings.resizeAlgorithm) ? messages.invalidResizeAlgorithm : null,
+    outputColorSet: !isOutputColorSet(settings.outputColorSet) ? messages.invalidOutputColorSet : null,
   }
 }
 

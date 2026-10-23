@@ -2,11 +2,14 @@ import { isResizeAlgorithm, MAX_RESULT, OPERATORS, RESIZE_ALGORITHMS, settingsEr
 import { parseSettings } from './settingsDraft'
 import type { SettingsDraft } from './settingsDraft'
 import { useLanguage } from '../i18n/useLanguage'
+import { CRAYON_SET_IDS, CRAYON_SETS, isOutputColorSet } from '../domain/crayonSets'
+import { toHex } from '../domain/color'
 
 export function AdvancedSettings({ value, onChange, disabled }: { value: SettingsDraft; onChange: (value: SettingsDraft) => void; disabled: boolean }) {
   const { messages: t } = useLanguage()
   const errors = settingsErrors(parseSettings(value), t)
   const resizeLabels = { pica: t.resizePica, nearest: t.resizeNearest, browser: t.resizeBrowser, foreground: t.resizeForeground }
+  const crayonSet = value.outputColorSet === 'image' ? null : CRAYON_SETS[value.outputColorSet]
   return (
     <details className="advanced-settings">
       <summary>{t.advanced}</summary>
@@ -40,6 +43,27 @@ export function AdvancedSettings({ value, onChange, disabled }: { value: Setting
       </fieldset>
       <fieldset disabled={disabled}>
         <legend>{t.imageSettings}</legend>
+        <label htmlFor="output-color-set">{t.outputColorSet}</label>
+        <select id="output-color-set" value={value.outputColorSet} onChange={event => {
+          const outputColorSet = event.target.value
+          if (isOutputColorSet(outputColorSet)) onChange({ ...value, outputColorSet })
+        }} aria-invalid={Boolean(errors.outputColorSet)} aria-describedby="color-set-help color-set-error">
+          <option value="image">{t.imageColors}</option>
+          {CRAYON_SET_IDS.map(id => <option key={id} value={id}>{t.crayonSetName(CRAYON_SETS[id].colors.length)}</option>)}
+        </select>
+        <p id="color-set-error" className="field-error">{errors.outputColorSet}</p>
+        <p id="color-set-help" className="help">{t.colorSetHelp}</p>
+        {crayonSet && <div className="crayon-preview">
+          <p className="help">{t.crayonEdition}</p>
+          <div className="crayon-strip" aria-hidden="true">{crayonSet.colors.map(color => <span key={color.id} style={{ backgroundColor: toHex(color.rgb) }} />)}</div>
+          <details>
+            <summary>{t.viewCrayonColors(crayonSet.colors.length)}</summary>
+            <ul className="crayon-colors">{crayonSet.colors.map(color => <li key={color.id}>
+              <span className="crayon-chip" style={{ backgroundColor: toHex(color.rgb) }} aria-hidden="true" />
+              <span>{color.id === 'white' ? `${color.name} (${t.leaveWhite})` : color.name}<small>{toHex(color.rgb)}</small></span>
+            </li>)}</ul>
+          </details>
+        </div>}
         <label htmlFor="resize-algorithm">{t.resizeAlgorithm}</label>
         <select id="resize-algorithm" value={value.resizeAlgorithm} onChange={event => {
           const resizeAlgorithm = event.target.value
@@ -50,11 +74,11 @@ export function AdvancedSettings({ value, onChange, disabled }: { value: Setting
         <p id="resize-error" className="field-error">{errors.resizeAlgorithm}</p>
         <p id="resize-help" className="help">{t.resizeHelp}</p>
         <label className="toggle-field"><input type="checkbox" checked={value.mergeSimilarColors} onChange={event => onChange({ ...value, mergeSimilarColors: event.target.checked })} aria-describedby="merge-colors-help" />{t.mergeSimilarColors}</label>
-        <p id="merge-colors-help" className="help">{t.mergeSimilarColorsHelp}</p>
+        <p id="merge-colors-help" className="help">{crayonSet ? t.crayonMergeHelp : t.mergeSimilarColorsHelp}</p>
         <label htmlFor="max-colors">{t.maxColors}</label>
         <input id="max-colors" type="number" min="1" max="16" step="1" value={value.maxColors} onChange={event => onChange({ ...value, maxColors: event.target.value })} aria-invalid={Boolean(errors.maxColors)} aria-describedby="colors-help colors-error" />
         <p id="colors-error" className="field-error">{errors.maxColors}</p>
-        <p id="colors-help" className="help">{t.colorsHelp}</p>
+        <p id="colors-help" className="help">{crayonSet ? t.crayonColorsHelp : t.colorsHelp}</p>
       </fieldset>
     </details>
   )
