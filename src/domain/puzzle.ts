@@ -6,6 +6,7 @@ import { buildProblemPool, DEFAULT_SETTINGS } from './settings'
 import type { MathProblem, PuzzleSettings } from './settings'
 import { UserFacingError } from '../i18n/locale'
 import { backgroundMask } from './background'
+import { CRAYON_REFERENCE, crayonForRgb } from './crayonSets'
 
 export interface ProblemCell extends MathProblem {
   readonly kind: 'problem'
@@ -20,12 +21,14 @@ export function isProblemCell(cell: PuzzleCell): cell is ProblemCell {
   return cell.kind === 'problem'
 }
 export interface KeyEntry {
+  readonly crayonId?: string
   readonly color: Rgb
   readonly hex: string
   readonly results: readonly number[]
   readonly colorIndex: number
 }
 export interface Puzzle extends ColorGrid {
+  readonly colorSetVersion?: string
   readonly cells: readonly PuzzleCell[]
   readonly key: readonly KeyEntry[]
   readonly settings: PuzzleSettings
@@ -45,7 +48,17 @@ export function createPuzzle(grid: ColorGrid, settings: PuzzleSettings = DEFAULT
       grid.palette.some(rgb => rgb.some(channel => !Number.isInteger(channel) || channel < 0 || channel > 255))) {
     throw new Error('The palette must contain unique, used RGB colors.')
   }
-  const skipped = settings.skipBackground ? backgroundMask(grid) : grid.assignments.map(() => false)
+  const outputColorSet = settings.outputColorSet
+  const crayons = outputColorSet === 'image' ? undefined : grid.palette.map(rgb => {
+    const color = crayonForRgb(outputColorSet, rgb)
+    if (!color) throw new Error('The palette contains a color outside the selected crayon set.')
+    return color
+  })
+  if (grid.backgroundCells && (grid.backgroundCells.length !== grid.assignments.length || grid.backgroundCells.some(value => typeof value !== 'boolean'))) {
+    throw new Error('The sampled background mask is invalid.')
+  }
+  if (crayons && settings.skipBackground && !grid.backgroundCells) throw new Error('Crayon puzzles require the sampled background mask.')
+  const skipped = settings.skipBackground ? grid.backgroundCells ?? backgroundMask(grid) : grid.assignments.map(() => false)
   const counts = grid.palette.map(() => 0)
   grid.assignments.forEach((color, index) => { if (!skipped[index]) counts[color]++ })
   const activeColors = counts.flatMap((count, color) => count > 0 ? [color] : [])
@@ -77,6 +90,7 @@ export function createPuzzle(grid: ColorGrid, settings: PuzzleSettings = DEFAULT
   const cursors = grid.palette.map(() => 0)
   const palette = Object.freeze(grid.palette.map(color => Object.freeze<Rgb>([...color])))
   const key = Object.freeze(activeColors.map(colorIndex => Object.freeze({
+    ...(crayons ? { crayonId: crayons[colorIndex].id } : {}),
     color: palette[colorIndex], colorIndex, hex: toHex(palette[colorIndex]), results: Object.freeze(results[colorIndex].sort((a, b) => a - b)),
   })).sort((a, b) => a.results[0] - b.results[0]))
   const cells = Object.freeze(grid.assignments.map((colorIndex, index): PuzzleCell => {
@@ -88,6 +102,8 @@ export function createPuzzle(grid: ColorGrid, settings: PuzzleSettings = DEFAULT
   return Object.freeze({
     rows: grid.rows, columns: grid.columns, palette,
     assignments: Object.freeze([...grid.assignments]), key, cells,
+    ...(grid.backgroundCells ? { backgroundCells: Object.freeze([...grid.backgroundCells]) } : {}),
+    ...(crayons ? { colorSetVersion: CRAYON_REFERENCE.version } : {}),
     settings: Object.freeze({ ...settings, operators: Object.freeze([...settings.operators]) }),
   })
 }

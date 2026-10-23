@@ -2,7 +2,10 @@ import pica from 'pica'
 import { assertDimensions } from '../domain/dimensions'
 import { toHex } from '../domain/color'
 import type { Rgb } from '../domain/color'
-import { reducePalette } from '../domain/palette'
+import { reduceCrayonPalette, reducePalette } from '../domain/palette'
+import { backgroundMask } from '../domain/background'
+import { CRAYON_REFERENCE, crayonForRgb, isOutputColorSet } from '../domain/crayonSets'
+import type { OutputColorSet } from '../domain/crayonSets'
 import type { ColorGrid } from '../domain/palette'
 import { fitImage, sampleCells, SAMPLES_PER_CELL } from '../domain/sampling'
 import { DEFAULT_MAX_COLORS, DEFAULT_SETTINGS, isResizeAlgorithm } from '../domain/settings'
@@ -116,7 +119,11 @@ export async function loadImage(file: File, trimMargins = false, signal?: AbortS
 }
 
 export interface ImageDiagnostics {
-  readonly pipelineVersion: '2'
+  readonly pipelineVersion: '2' | '3'
+  readonly outputColorSet?: OutputColorSet
+  readonly colorSetVersion?: string
+  readonly paletteColorIds?: readonly string[]
+  readonly colorMatching?: 'image-medoids' | 'cie76-crayon-medoids'
   readonly sourceWidth: number
   readonly sourceHeight: number
   readonly trim?: LoadedImage['trim']
@@ -159,10 +166,13 @@ export async function processImage(
   image: LoadedImage, rows: number, columns: number, maximumColors = DEFAULT_MAX_COLORS,
   algorithm: ResizeAlgorithm = DEFAULT_SETTINGS.resizeAlgorithm,
   mergeSimilarColors = DEFAULT_SETTINGS.mergeSimilarColors, signal?: AbortSignal,
+  options: { outputColorSet?: OutputColorSet; skipBackground?: boolean } = {},
 ): Promise<ProcessedImage> {
   assertDimensions(rows, columns)
   validateImageDimensions(image.bitmap.width, image.bitmap.height)
   if (!isResizeAlgorithm(algorithm)) throw new UserFacingError('invalidResizeAlgorithm')
+  const outputColorSet = options.outputColorSet ?? 'image'
+  if (!isOutputColorSet(outputColorSet)) throw new UserFacingError('invalidOutputColorSet')
   signal?.throwIfAborted()
   const sourceWidth = image.bitmap.width
   const sourceHeight = image.bitmap.height
@@ -189,11 +199,24 @@ export async function processImage(
   const colors = samples === 1
     ? Array.from({ length: rows * columns }, (_, index): Rgb => [data[index * 4], data[index * 4 + 1], data[index * 4 + 2]])
     : sampleCells(data, rows, columns)
-  const grid = reducePalette(colors, maximumColors, mergeSimilarColors)
+  const backgroundCells = outputColorSet !== 'image' && options.skipBackground
+    ? backgroundMask({ rows, columns, palette: colors, assignments: colors.map((_, index) => index) })
+    : undefined
+  const matchingColors = backgroundCells ? colors.map((rgb, index): Rgb => backgroundCells[index] ? [255, 255, 255] : rgb) : colors
+  const grid = outputColorSet === 'image'
+    ? reducePalette(colors, maximumColors, mergeSimilarColors)
+    : reduceCrayonPalette(matchingColors, outputColorSet, maximumColors, mergeSimilarColors)
   return {
     rows, columns, ...grid,
+    ...(backgroundCells ? { backgroundCells } : {}),
     diagnostics: {
-      pipelineVersion: '2', sourceWidth: image.originalWidth, sourceHeight: image.originalHeight,
+      pipelineVersion: outputColorSet === 'image' ? '2' : '3',
+      outputColorSet, colorMatching: outputColorSet === 'image' ? 'image-medoids' : 'cie76-crayon-medoids',
+      ...(outputColorSet !== 'image' ? {
+        colorSetVersion: CRAYON_REFERENCE.version,
+        paletteColorIds: grid.palette.map(rgb => crayonForRgb(outputColorSet, rgb)!.id),
+      } : {}),
+      sourceWidth: image.originalWidth, sourceHeight: image.originalHeight,
       ...(image.trim.enabled ? { trim: image.trim, inputWidth: sourceWidth, inputHeight: sourceHeight } : {}),
       requestedAlgorithm: algorithm,
       appliedAlgorithm: sameSize ? 'identity' : algorithm, fittedBounds: fit,

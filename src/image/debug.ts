@@ -4,6 +4,7 @@ import { assertDimensions } from '../domain/dimensions'
 import type { Puzzle } from '../domain/puzzle'
 import { UserFacingError } from '../i18n/locale'
 import type { ImageDiagnostics } from './process'
+import { CRAYON_REFERENCE, CRAYON_SETS } from '../domain/crayonSets'
 
 export function isLocalHost(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, '')
@@ -61,6 +62,9 @@ export async function createDebugBundle(source: File, puzzle: Puzzle, diagnostic
     },
     diagnostics,
     settings: puzzle.settings,
+    ...(puzzle.settings.outputColorSet !== 'image' ? {
+      colorSet: { ...CRAYON_REFERENCE, ...CRAYON_SETS[puzzle.settings.outputColorSet] },
+    } : {}),
     puzzle,
     stats: debugStats(puzzle, diagnostics),
     stages: {

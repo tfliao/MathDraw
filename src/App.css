@@ -85,6 +85,14 @@ footer { border-top: 1px solid #e3e7df; padding: 22px 0; font-size: 11px; color:
 .key-swatch { width: 24px; height: 24px; flex-shrink: 0; }
 .key-entry > span { font-size: 10px; white-space: nowrap; }
 .key-entry small { display: block; font-size: 8px; color: #555; margin-top: 2px; }
+.crayon-sheet .key-entry > span { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+.worksheet-crayon-set { font-size: 10px; line-height: 1.4; margin: 0 0 10px; }
+.crayon-strip { display: flex; flex-wrap: wrap; gap: 3px; margin: 8px 0; }
+.crayon-strip > span { width: 15px; height: 15px; border: 1px solid #697369; border-radius: 3px; }
+.crayon-colors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); list-style: none; padding: 0; gap: 8px; }
+.crayon-colors li { display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; min-width: 0; }
+.crayon-colors small { display: block; color: #54695d; font-size: 10px; }
+.crayon-chip { flex-shrink: 0; width: 20px; height: 20px; border: 1px solid #697369; border-radius: 3px; }
 .worksheet-footer { display: flex; justify-content: space-between; margin: 14px 0 0; border-top: 1px solid #ddd; padding-top: 8px; font-size: 8px; color: #555; }
 .advanced-settings { border-top: 1px solid #dce3d9; border-bottom: 1px solid #dce3d9; margin: 20px 0; padding: 13px 0; font-size: 12px; }
 .advanced-settings summary { cursor: pointer; font-weight: 700; color: #245f54; }

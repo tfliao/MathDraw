@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadImage, MAX_FILE_SIZE, processImage, validateFile, validateImageDimensions } from './process'
+import type { Rgb } from '../domain/color'
+import { createPuzzle, isProblemCell } from '../domain/puzzle'
+import { DEFAULT_SETTINGS } from '../domain/settings'
 
 const { resize } = vi.hoisted(() => ({ resize: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('pica', () => ({ default: () => ({ resize }) }))
@@ -18,7 +21,7 @@ describe('image input validation', () => {
     return { width, height, close: vi.fn() } as unknown as ImageBitmap
   }
 
-  function imageEnvironment(points: readonly [number, number][] = [[1, 1], [2, 1]]) {
+  function imageEnvironment(points: readonly [number, number][] = [[1, 1], [2, 1]], sampleColors?: readonly Rgb[]) {
     const original = bitmap()
     const cropped = bitmap(2, 1)
     const decode = vi.fn().mockResolvedValueOnce(original).mockResolvedValue(cropped)
@@ -33,6 +36,7 @@ describe('image input validation', () => {
           for (const [x, y] of points) {
             if (x < width && y < height) data.set([0, 0, 0, 255], (y * width + x) * 4)
           }
+          sampleColors?.forEach((rgb, index) => data.set([...rgb, 255], index * 4))
           return { data }
         }),
       }
@@ -186,6 +190,44 @@ describe('image input validation', () => {
   })
 
   describe('trimmed processing diagnostics', () => {
+    it('matches identity-sized pixels to crayons while preserving the sampled background topology', async () => {
+      const white: Rgb = [255, 255, 255]
+      const black: Rgb = [35, 35, 35]
+      const colors: Rgb[] = Array.from({ length: 16 }, () => black)
+      colors[0] = white
+      colors[3] = [239, 255, 255]
+      colors[5] = white
+      const env = imageEnvironment([], colors)
+      env.decode.mockReset().mockResolvedValue(bitmap(4, 4))
+      const image = await loadImage(env.file)
+      const settings = { ...DEFAULT_SETTINGS, outputColorSet: 'crayola-16', skipBackground: true } as const
+      const result = await processImage(image, 4, 4, 8, 'pica', false, undefined, settings)
+      expect(result.diagnostics).toMatchObject({
+        pipelineVersion: '3', outputColorSet: 'crayola-16', colorSetVersion: '1',
+        colorMatching: 'cie76-crayon-medoids', appliedAlgorithm: 'identity', paletteColorIds: ['black', 'white'],
+        sampledColors: colors,
+      })
+      const puzzle = createPuzzle(result, settings)
+      expect(puzzle.cells[0].kind).toBe('background')
+      expect(puzzle.cells[3].kind).toBe('problem')
+      expect(puzzle.cells[5].kind).toBe('problem')
+      expect(puzzle.palette[puzzle.cells[3].colorIndex]).toEqual(white)
+      expect(puzzle.cells.filter(isProblemCell)).toHaveLength(15)
+      const limited = await processImage(image, 4, 4, 1, 'nearest', true, undefined, settings)
+      expect(limited.palette).toEqual([white])
+      expect(createPuzzle(limited, settings).cells.filter(isProblemCell)).toHaveLength(15)
+      image.dispose()
+    })
+
+    it('retains the all-background case and rejects empty math capacity for crayon puzzles', async () => {
+      const env = imageEnvironment([])
+      const image = await loadImage(env.file)
+      const settings = { ...DEFAULT_SETTINGS, outputColorSet: 'crayola-48', skipBackground: true } as const
+      const result = await processImage(image, 4, 4, 1, 'nearest', true, undefined, settings)
+      expect(createPuzzle(result, settings).key).toEqual([])
+      expect(() => createPuzzle(result, { ...settings, maxResult: 1 })).toThrow('no allowed answers')
+      image.dispose()
+    })
     it('gives Pica an owned clone of the crop and only closes that clone during processing', async () => {
       const env = imageEnvironment()
       const clone = bitmap(2, 1)

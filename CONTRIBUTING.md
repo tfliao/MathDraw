@@ -120,6 +120,7 @@ separate text items or equivalent radicals.
 | --- | --- |
 | `src\domain\dimensions.ts` | Manual limits and auto-size calculations |
 | `src\domain\color.ts`, `sampling.ts`, `palette.ts` | Color math, cell sampling, separated palettes |
+| `src\domain\crayonSets.ts` | Versioned Crayola reference assortments, stable color IDs, approximate RGB and provenance |
 | `src\domain\settings.ts`, `puzzle.ts` | Legal expressions, result filtering, immutable puzzles |
 | `src\domain\background.ts` | Near-white classification and edge-connected background detection |
 | `src\domain\layout.ts` | Physical worksheet dimensions and paper recommendations |
@@ -145,8 +146,22 @@ separate text items or equivalent radicals.
 - Internal multiplication uses `*`. Use `operatorSymbol` / `problemText` for
   display so screen and print use the same multiplication sign.
 - Preserve sampled RGB values when they fit effective capacity and optional
-  similar-color merging is off (the default). Enforce CIE76 distance of at least
+  similar-color merging is off (the default) in Image colors mode. Enforce CIE76 distance of at least
   25 only when merging is enabled; preserve reserved-white behavior during reduction.
+- Crayon mode matches samples to the selected versioned catalog before capacity
+  reduction, then reassigns the original samples to the surviving crayons. Never
+  introduce an out-of-catalog RGB by reduction or merging. Keep stable catalog-order
+  nearest-color ties, unique used colors, paper-white reservation, and the existing
+  total palette ceiling (16, default 8), further limited by legal result capacity.
+- For crayon background skipping, detect edge-connected near-white cells before
+  matching, normalize those skipped cells to paper white, and carry a copied,
+  frozen mask into the puzzle. Never infer skipped cells from snapped colors.
+  Enclosed white and pale foreground that snaps to white retain arithmetic.
+- Keep preset/version and per-key crayon IDs in immutable snapshots and debug
+  data. English wrapper names are product identifiers; localize surrounding
+  instructions at render time. Use two key entries per row for named crayons,
+  sharing the column count and physical height estimate with worksheet layout.
+  Verify both actual PDFs and the larger-paper recommendation for long keys.
 - The optional foreground sampler excludes near-white samples, then chooses
   the most frequent actual sample from the largest 16-level RGB bucket per cell.
   Use white if no foreground remains. Share the near-white predicate with background
@@ -155,6 +170,7 @@ separate text items or equivalent radicals.
   before palette reduction regardless of selected algorithm. Pica MKS2013 defaults
   to direct-grid resizing, not the foreground sampler. Nearest and browser modes
   also target the grid; only foreground mode uses a 16x sampling canvas.
+  A crayon preset may still change those directly copied samples during matching.
 - Keep a single Pica instance with its default JS/WASM/worker features, without
   createImageBitmap resizing. Own a source bitmap clone across async work, cancel
   obsolete jobs, and ignore both stale results and stale failures in the UI.

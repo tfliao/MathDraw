@@ -3,6 +3,7 @@ import type { Rgb } from './color'
 import { createPuzzle, isProblemCell } from './puzzle'
 import { answer, buildProblemPool, DEFAULT_SETTINGS, OPERATORS } from './settings'
 import type { ColorGrid } from './palette'
+import { CRAYON_SETS } from './crayonSets'
 
 const colors: Rgb[] = [[255, 255, 255], [0, 0, 0], [230, 20, 30], [10, 200, 30], [0, 20, 240], [245, 220, 10], [180, 30, 180], [0, 200, 200]]
 const grid: ColorGrid = { rows: 4, columns: 4, palette: colors, assignments: Array.from({ length: 16 }, (_, n) => n % 8) }
@@ -178,6 +179,27 @@ describe('configurable result allocation', () => {
 })
 
 describe('edge-connected background cells', () => {
+  it('uses the pre-matching mask and frozen crayon identity instead of reclassifying snapped white', () => {
+    const settings = { ...DEFAULT_SETTINGS, outputColorSet: 'crayola-16', skipBackground: true } as const
+    const backgroundCells = Array<boolean>(16).fill(false)
+    backgroundCells[0] = true
+    const input = { rows: 4, columns: 4, palette: [[255, 255, 255]] satisfies Rgb[], assignments: Array<number>(16).fill(0), backgroundCells }
+    const puzzle = createPuzzle(input, settings, () => .5)
+    expect(puzzle.cells[0].kind).toBe('background')
+    expect(puzzle.cells.slice(1).every(isProblemCell)).toBe(true)
+    expect(puzzle.key[0].crayonId).toBe('white')
+    expect(puzzle.colorSetVersion).toBe('1')
+    backgroundCells.fill(true)
+    expect(puzzle.cells.filter(isProblemCell)).toHaveLength(15)
+    expect(Object.isFrozen(puzzle.key[0])).toBe(true)
+    expect(Object.isFrozen(puzzle.backgroundCells)).toBe(true)
+    expect(puzzle.backgroundCells?.filter(Boolean)).toHaveLength(1)
+    expect(() => createPuzzle({ ...input, backgroundCells: [] }, settings)).toThrow('mask')
+    const { backgroundCells: _mask, ...withoutMask } = input
+    expect(() => createPuzzle(withoutMask, settings)).toThrow('sampled background')
+    expect(() => createPuzzle({ ...input, palette: [[0, 0, 0]] }, settings)).toThrow('outside')
+    expect(CRAYON_SETS['crayola-16'].colors.find(color => color.id === puzzle.key[0].crayonId)?.rgb).toEqual(puzzle.key[0].color)
+  })
   const white: ColorGrid = { rows: 4, columns: 4, palette: [[255, 255, 255]], assignments: Array(16).fill(0) }
   it('preserves white arithmetic when background skipping is disabled', () => {
     const puzzle = createPuzzle(white, DEFAULT_SETTINGS, () => .5)

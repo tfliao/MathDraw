@@ -1,7 +1,52 @@
 import { describe, expect, it } from 'vitest'
-import { colorDistance, rgbToLab } from './color'
+import { colorDistance, rgbToLab, toHex } from './color'
 import type { Rgb } from './color'
-import { MIN_COLOR_DISTANCE, reducePalette } from './palette'
+import { MIN_COLOR_DISTANCE, reduceCrayonPalette, reducePalette } from './palette'
+import { CRAYON_SET_IDS, CRAYON_SETS } from './crayonSets'
+
+describe('constrained crayon palettes', () => {
+  it.each(CRAYON_SET_IDS)('preserves exact matches and paper white for %s', set => {
+    const catalog = CRAYON_SETS[set].colors
+    for (let offset = 0; offset < catalog.length; offset += 15) {
+      const colors = catalog.slice(offset, offset + 15).map(color => color.rgb)
+      colors.push([255, 255, 255])
+      const result = reduceCrayonPalette(colors, set, 16)
+      expect(result.assignments.map(index => result.palette[index])).toEqual(colors)
+    }
+  })
+
+  it.each(CRAYON_SET_IDS)('keeps every reduced/merged output inside %s and nearest to surviving colors', set => {
+    const allowed = new Set(CRAYON_SETS[set].colors.map(color => toHex(color.rgb)))
+    const colors: Rgb[] = Array.from({ length: 4096 }, (_, index) => [index * 37 % 256, index * 71 % 256, index * 13 % 256])
+    colors[0] = [255, 255, 255]
+    for (const merge of [false, true]) {
+      for (const cap of [1, 3, 8, 16]) {
+        const result = reduceCrayonPalette(colors, set, cap, merge)
+        expect(result.palette.length).toBeLessThanOrEqual(cap)
+        expect(new Set(result.palette.map(toHex)).size).toBe(result.palette.length)
+        expect(new Set(result.assignments).size).toBe(result.palette.length)
+        expect(result.palette[result.assignments[0]]).toEqual([255, 255, 255])
+        const labs = result.palette.map(rgbToLab)
+        result.palette.forEach((color, index) => {
+          expect(allowed.has(toHex(color))).toBe(true)
+          if (merge) labs.slice(index + 1).forEach(other => expect(colorDistance(labs[index], other)).toBeGreaterThanOrEqual(25))
+        })
+        colors.forEach((rgb, index) => {
+          const distances = labs.map(lab => colorDistance(rgbToLab(rgb), lab))
+          expect(distances[result.assignments[index]]).toBeCloseTo(Math.min(...distances), 10)
+        })
+        expect(reduceCrayonPalette(colors, set, cap, merge)).toEqual(result)
+      }
+    }
+  })
+
+  it('retains similar crayons only when merging is off and rejects invalid samples', () => {
+    const colors: Rgb[] = [[238, 32, 77], [252, 40, 71]]
+    expect(reduceCrayonPalette(colors, 'crayola-24').palette).toHaveLength(2)
+    expect(reduceCrayonPalette(colors, 'crayola-24', 8, true).palette).toHaveLength(1)
+    expect(() => reduceCrayonPalette([[NaN, 0, 0]], 'crayola-16')).toThrow('RGB')
+  })
+})
 
 function assertPalette(colors: readonly Rgb[], maximumColors = 8) {
   const result = reducePalette(colors, maximumColors, true)

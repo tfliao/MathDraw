@@ -3,14 +3,29 @@ import { answer, assertSettings, buildProblemPool, DEFAULT_SETTINGS, isResizeAlg
 import type { Operator, ResizeAlgorithm } from './settings'
 import { en } from '../i18n/en'
 import { zhTW } from '../i18n/zh-TW'
+import { CRAYON_SET_IDS, isOutputColorSet } from './crayonSets'
+import type { OutputColorSet } from './crayonSets'
 
 describe('difficulty settings', () => {
   it('retains default addition with the new result constraints', () => {
-    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false, maxResultsPerColor: 3, skipBackground: false, resizeAlgorithm: 'pica', mergeSimilarColors: false })
+    expect(DEFAULT_SETTINGS).toEqual({ allowZero: false, maxOperand: 9, operators: ['+'], multiMap: true, maxColors: 8, maxResult: 99, allowZeroResults: false, maxResultsPerColor: 3, skipBackground: false, resizeAlgorithm: 'pica', mergeSimilarColors: false, outputColorSet: 'image' })
     expect([...buildProblemPool(DEFAULT_SETTINGS).keys()]).toEqual(Array.from({ length: 17 }, (_, index) => index + 2))
   })
 
   describe('image settings', () => {
+    it('validates output sets without changing arithmetic capacity', () => {
+      for (const outputColorSet of ['image', ...CRAYON_SET_IDS] as const) {
+        expect(isOutputColorSet(outputColorSet)).toBe(true)
+        expect(buildProblemPool({ ...DEFAULT_SETTINGS, outputColorSet })).toEqual(buildProblemPool(DEFAULT_SETTINGS))
+      }
+      for (const value of ['', 'crayola-12', 'CRAYOLA-24', undefined, null, 24]) {
+        expect(isOutputColorSet(value)).toBe(false)
+        const settings = { ...DEFAULT_SETTINGS, outputColorSet: value as OutputColorSet }
+        expect(settingsErrors(settings).outputColorSet).toBe(en.invalidOutputColorSet)
+        expect(settingsErrors(settings, zhTW).outputColorSet).toBe(zhTW.invalidOutputColorSet)
+        expect(() => assertSettings(settings)).toThrow(en.invalidOutputColorSet)
+      }
+    })
     it('defaults to Pica and preserves colors without optional merging', () => {
       expect(DEFAULT_SETTINGS.resizeAlgorithm).toBe('pica')
       expect(DEFAULT_SETTINGS.mergeSimilarColors).toBe(false)
